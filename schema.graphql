@@ -1,0 +1,1107 @@
+# schema.graphql
+
+# type Query {
+#   getNotifications(_user_id: String!, _name: String!): [message_log]
+#   getLogs: [message_log]
+# }
+
+# type message_log {
+#   guid: ID!
+#   name: String!
+#   source: String!
+#   created_at: String!
+#   status_code: Int!
+#   kind_of_user: String!
+#   user_id: String!
+#   component: String!
+#   message: String!
+#   message_type: String!
+#   message_metadata: String!
+#   description: String!
+#   no_of_tries: Int!
+#   is_notification: Boolean!
+#   is_read: Boolean!
+# }
+
+# type Mutation {
+#   addLog(
+#     name: String!
+#     source: String!
+#     status_code: Int!
+#     kind_of_user: String!
+#     user_id: String!
+#     component: String!
+#     message: String!
+#     message_type: String!
+#     message_metadata: String!
+#     description: String!
+#     no_of_tries: Int!
+#     is_notification: Boolean
+#     is_read: Boolean
+#   ): message_log
+# }
+
+#-------------------------------------------------------------
+
+scalar Upload
+scalar JSON
+scalar DateTime
+
+type Query {
+  GetProvinces(country: String!): [String]
+  GetCities(country: String!, province: String!): [String]
+
+  GetDropdownData(
+    country: String
+    province: String
+    city: String
+    state: String
+    location: String
+  ): JSON
+  PersonalInformationCompletion: JSON
+  WorkInformationCompletion: JSON
+  SearchAddresses(address: String!): [String]
+  _GetLocationInfo(latitude: Float!, longitude: Float!): JSON
+  DropdownJobLevels: JSON
+  DropdownJobTypes: JSON
+  NearbyJobs(skip: Int!, take: Int!): [Job]
+  DistantJobs(skip: Int!, take: Int!): [Job]
+  CandidateJobSearch(
+    searchString: String
+    searchKeywords: [String]
+    salaryAmountRange: [Float]
+    jobLevelId: String
+    jobTypeId: String
+    skip: Int
+    take: Int
+  ): [Job]
+
+  _CandidateJobSearch(
+    searchString: String
+    searchKeywords: [String]
+    salaryAmountRange: [Float]
+    jobLevelId: String
+    jobTypeId: String
+    skip: Int
+    take: Int
+  ): [Job]
+
+  DropdownTitleDescriptionMerged(
+    searchString: String
+
+    skip: Int
+    take: Int
+  ): [String]
+
+  SearchHistory(skip: Int!, take: Int!): JSON
+
+  _InitializeData(password: String!): String!
+  _GetJobs(skip: Int!, take: Int!): [Job]
+  GetJobById(id: String!): Job
+  RecentJobViews(skip: Int!, take: Int!): [Job]
+  GetAppliedJobs(
+    applicationStatusId: String!
+
+    skip: Int!
+    take: Int!
+  ): [JobApplication]
+
+  GetBookmarkedJobs(
+    jobStatusId: String!
+
+    skip: Int!
+    take: Int!
+  ): [Job]
+
+  # GetUserBookmarkedFilters: UserBookmarkedFilters
+  GetTotalAppliedJobCount: Int
+  GetTotalBookmarkedJobCount: Int
+  DropdownJobStatuses: JSON
+  DropdownApplicationJobStatuses: JSON
+  GetUserProfile: User
+  DropdownSkillsAndTagsMerged(
+    searchKeyword: String
+
+    skip: Int!
+    take: Int!
+  ): [String]
+
+  IsAlreadyApplied(jobId: String!): JSON
+  _ReverseGeocode(latitude: Float, longitude: Float): JSON
+  GetUserLocation: JSON
+
+  DropdownWorkHoursTypes(skip: Int, take: Int): JSON
+  DropdownTransportations(skip: Int, take: Int): JSON
+  DropdownJobCategories(searchString: String, skip: Int, take: Int): JSON
+}
+
+type Mutation {
+  UploadCandidateDocument(
+    candidateFileType: String!
+    file: Upload
+    accepted: Boolean
+  ): JSON
+
+  UpdateMyWorkInformation(
+    isCurrentLocationDefault: Boolean
+    isNearMyAddressDefault: Boolean
+    isWorkInCityDefault: Boolean
+    workHours: Int
+    workHoursTypeId: String
+    transportationId: String
+    jobCategories: [String]
+    country: String
+    state: String
+    province: String
+    city: String
+    currentLocationRadius: Int
+    nearMyAddressRadius: Int
+  ): JSON
+  UpdatePersonalInformation(
+    name: String
+    contactNo: String
+    permanentAddress: String
+    dateOfBirth: DateTime
+    emergencyContact: String
+  ): JSON
+
+  DeleteSearchHistory(id: Int): JSON
+  SetUserLocation(latitude: Float, longitude: Float): JSON
+  BookmarkJob(jobId: String!): Bookmark
+  UnbookmarkJob(jobId: String!): Bookmark
+  ApplyToJob(jobId: String!, resumeId: String!): JSON
+  RevokeJobApplication(applicationId: String!): JSON
+}
+
+type UserBookmarkedFilters {
+  skills: [String]
+  tags: [String]
+  statuses: [String]
+  categories: [String]
+  applicationStatuses: [String!]
+}
+
+type RecentJobView {
+  id: Int
+  userId: String
+  user: User
+  jobId: String
+  job: Job
+  viewedAt: String
+}
+
+type Job {
+  id: String!
+  organization: User
+  title: String!
+  description: String!
+  icon: String
+  status: JobStatus
+  isOpen: Boolean
+  isExpired: Boolean
+  startDate: DateTime
+  endDate: DateTime
+  address: Address
+  createdAt: DateTime
+  updatedAt: DateTime
+  bookmarks: [Bookmark]
+  jobApplications: [JobApplication]
+  category: JobCategory
+  tags: [Tag]
+  jobDocuments: [JobDocument]
+  numberOfSeats: Int
+  jobLevel: JobLevel
+  jobType: JobType
+  salaryAmount: Float
+  additionalDetails: String
+  skills: [Skill]
+  distance_meters: String
+  distance_kilometers: String
+  distance: String
+  isBookmarked: Boolean
+}
+
+type JobType {
+  id: String
+  name: String
+  createdAt: String
+  updatedAt: String
+  orderBy: Int
+  # jobs      Job[]
+}
+
+type User {
+  id: String!
+  name: String
+  firstName: String
+  lastName: String
+
+  companyName: String
+  middleName: String
+  dateOfBirth: String
+  profilePicture: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  isDeleted: Boolean
+  role: Role
+  # userFeatures: [UserFeature]
+  # userPlan: [UserPlan]
+  # userPlanFeatures: [UserPlanFeature]
+  emails: [Email]
+  # phones: [Phone]
+  designation: Designation
+  # productPurchases: [ProductPurchase]
+  tags: [Tag]
+  # addresses: [Address]
+  # userSessions: [UserSession]
+  userPreference: UserPreference
+  bookmarks: [Bookmark]
+  jobs: [Job]
+  jobApplications: [JobApplication]
+  userDocuments: [UserDocument]
+  skills: [Skill]
+
+  candidateAddress: [CandidateAddress]
+  candidatePreference: CandidatePreference
+  candidateJobCategory: [CandidateJobCategory]
+  candidatePhone: [CandidatePhone]
+
+  PersonalInformationCompletion: Int
+  WorkInformationCompletion: Int
+  DocumentsCompletion: Int
+  TotalProfileCompletion: Int
+
+  candidateDocuments: [CandidateDocument]
+}
+
+type CandidateDocument {
+  id: String
+  title: String
+  description: String
+  fileName: String
+  fileSize: String
+  fileSizeInBytes: Int
+  fileType: String
+  extension: String
+  fileURL: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  acceptedTermsConditions: Boolean
+  candidateDocumentTypeId: String
+  candidateDocumentType: CandidateDocumentType
+  userId: String
+  #  user   :    User
+}
+
+type CandidateDocumentType {
+  id: String
+  name: String
+  isTermsConditionsDocument: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  # candidateDocument CandidateDocument[]
+}
+
+type CandidateAddress {
+  id: String
+  userId: String
+
+  latitude: Float
+  longitude: Float
+  radius: Float
+
+  location: String
+  city: String
+  state: String
+  province: String
+  zipPostalCode: String
+  country: String
+
+  candidateAddressTypeId: String
+  candidateAddressType: CandidateAddressType
+
+  createdAt: DateTime
+  updatedAt: DateTime
+  # user          User
+}
+
+type CandidateAddressType {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+
+  # candidateAddress: [CandidateAddress]
+}
+
+type CandidatePreference {
+  id: String
+  userId: String
+
+  isCurrentLocationDefault: Boolean
+  isNearMyAddressDefault: Boolean
+  isWorkInCityDefault: Boolean
+
+  workHours: Int
+
+  workHoursTypeId: String
+  workHoursType: WorkHoursType
+
+  transportationId: String
+
+  transportation: Transportation
+
+  createdAt: DateTime
+  updatedAt: DateTime
+  # user          User
+  jobCategories: [CandidateJobCategory]
+}
+
+type WorkHoursType {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  # candidatePreference: [CandidatePreference]
+}
+
+type CandidateJobCategory {
+  id: String
+  candidateId: String
+  categoryId: String
+
+  candidatePreferenceId: String
+  createdAt: DateTime
+  updatedAt: DateTime
+
+  # candidate: User
+  jobCategory: JobCategory
+}
+
+type CandidatePhone {
+  id: String
+  userId: String
+  number: String
+
+  candidatePhoneTypeId: String
+  candidatePhonetype: CandidatePhoneType
+  createdAt: DateTime
+  updatedAt: DateTime
+  # user               User
+}
+
+type CandidatePhoneType {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  candidatePhones: [CandidatePhone]
+}
+
+type Transportation {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  # candidatePreference CandidatePreference[]
+}
+
+type Designation {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  users: [User]
+}
+
+type UserDocument {
+  id: String
+  user: User
+  userId: String
+  document: Document
+  documentId: String
+}
+
+type Email {
+  id: String
+  email: String
+  isPrimary: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  description: String
+  department: String
+}
+
+type Phone {
+  id: String
+  phone: String
+  isPrimary: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  description: String
+  department: String
+}
+
+type Address {
+  id: String
+  latitude: Float
+  longitude: Float
+  city: String
+  province: String
+  zipPostalCode: String
+  country: String
+  isCurrent: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type UserPreference {
+  id: String
+  userId: String
+  jobSearchRadiusKm: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type JobStatus {
+  id: String
+  name: String
+  description: String
+}
+
+type JobCategory {
+  id: String
+  name: String
+}
+
+type Tag {
+  id: String
+  name: String
+}
+
+type JobApplication {
+  id: String
+  job: Job
+  jobId: String
+  candidate: User
+  candidateId: String
+  resumeId: String
+  status: ApplicationStatus
+  statusId: String
+  appliedAt: DateTime
+  updatedAt: DateTime
+}
+
+type ApplicationStatus {
+  id: String
+  name: String
+  description: String
+}
+
+type JobDocument {
+  id: String
+  document: Document
+}
+
+type Document {
+  id: String
+  title: String
+  description: String
+  fileName: String
+  fileSize: Int
+  fileType: String
+  fileURL: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  category: DocumentCategory
+  categoryId: String
+  JobDocument: [JobDocument]
+  UserDocument: [UserDocument]
+}
+
+type DocumentCategory {
+  id: String
+  name: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  Document: [Document]
+}
+
+type JobLevel {
+  id: String
+  name: String
+}
+
+type Skill {
+  id: String
+  name: String
+}
+
+type Bookmark {
+  id: String
+  user: User
+  userId: String
+  job: Job
+  jobId: String
+  createdAt: DateTime
+}
+
+type Role {
+  id: String
+  name: String
+}
+
+input InputIncidentAttachment {
+  title: String!
+  attachment: Upload!
+}
+
+type startAndStopEC2 {
+  message: String
+}
+
+type statusEC2 {
+  Id: ID
+  Name: String
+  State: String
+  Type: String
+  LaunchTime: String
+}
+
+# type Email {
+#   emailId: ID
+#   incidentId: ID
+#   userId: ID
+#   from_email: String
+#   to_email: String
+#   cc_email: String
+#   subject: String
+#   message: String
+#   is_delivered: Boolean
+#   response_metadata: String
+#   createdAt: String
+
+#   filepath: [String]
+#   numOfFiles: Int
+# }
+
+type Emails {
+  emailId: ID
+  incidentId: ID
+  userId: ID
+  from_email: String
+  to_email: String
+  cc_email: String
+  subject: String
+  message: String
+  is_delivered: Boolean
+  response_metadata: String
+  createdAt: String
+  emailDocuments: [EmailDocument]
+}
+
+type EmailDocument {
+  documentId: ID
+  emailId: Int
+  documentFileTypeId: String
+  fileName: String
+  fileSize: String
+  ownerId: String
+  resourceUrl: String
+  createdAt: String
+}
+
+type SMS {
+  smsId: ID
+  incidentId: ID
+  userId: ID
+  to_phone: String
+  message: String
+  is_delivered: Boolean
+  response_metadata: String
+  createdAt: String
+}
+
+type Note {
+  noteId: ID
+  incidentId: ID
+  userId: ID
+  title: String
+  description: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type File {
+  filename: String!
+  mimetype: String!
+  encoding: String!
+  filepath: [String]!
+}
+
+type deleteNewlyCreatedIncident {
+  noOfIncidents: Int!
+}
+
+type deleteIncident {
+  noOfIncidents: Int!
+}
+
+type deleteAllDraftIncident {
+  noOfIncidents: Int!
+}
+
+type deleteDocument {
+  noOfDocuments: Int!
+}
+
+input FileFromComposite {
+  filename: String!
+  documentFileTypeId: String!
+  fileSize: String!
+  resourceUrl: String!
+}
+
+input businessOwners {
+  firstName: String
+  middleName: String
+  lastName: String
+  profilePicture: String
+  emailId: String
+  telephoneNumber: String
+  mobilePhone: String
+  role: String
+  company: String
+  companyAddress: String
+}
+
+type outBusinessOwners {
+  businessOwnerId: ID
+  incidentId: ID
+  userId: ID
+  firstName: String
+  middleName: String
+  lastName: String
+  profilePicture: String
+  emailId: String
+  telephoneNumber: String
+  mobilePhone: String
+  role: String
+  company: String
+  companyAddress: String
+}
+
+input contactReferences {
+  firstName: String
+  middleName: String
+  lastName: String
+  profilePicture: String
+  emailId: String
+  telephoneNumber: String
+  mobilePhone: String
+  role: String
+  company: String
+  companyAddress: String
+  is_businessOwner: String
+}
+
+type outContactReferences {
+  contactReferenceId: ID
+  incidentId: ID
+  userId: ID
+  firstName: String
+  middleName: String
+  lastName: String
+  profilePicture: String
+  emailId: String
+  telephoneNumber: String
+  mobilePhone: String
+  role: String
+  company: String
+  companyAddress: String
+  is_businessOwner: String
+}
+
+type outAssigneeList {
+  userId: String
+  firstName: String
+  middleName: String
+  lastName: String
+  profilePicture: String
+  emailId: String
+  telephoneNumber: String
+  mobilePhone: String
+  real_estate_id: String
+  userType: String
+  createdAt: String
+}
+
+input userInfo {
+  email: String!
+  user_id: ID!
+  first_name: String!
+  middle_name: String
+  last_name: String!
+  real_estate_id: ID
+}
+
+# type User {
+#   id: String
+#   firstName: String
+#   lastName: String
+#   middleName: String
+#   profilePicture: String
+#   roleId: String
+#   createdAt: String
+#   updatedAt: String
+#   isDeleted: Boolean
+#   role: Role
+#   # userFeatures: [UserFeature]
+#   # userPlan: [UserPlan]
+#   # userPlanFeatures: [UserPlanFeature]
+#   emails: [Email]
+#   phones: [Phone]
+#   # incidents: [Incident]
+#   # productPurchases: [ProductPurchase]
+#   # tags: [Tag]
+# }
+
+type Role {
+  id: String
+  name: String
+  createdAt: String
+  updatedAt: String
+  # rolePolicies: [RolePolicy]
+  # users: [User]
+}
+
+type Incident {
+  id: String
+  title: String
+  description: String
+  severityId: String
+  productId: String
+  affectedComponentId: String
+  owner: String
+  incidentOwner: User
+  status: Status
+  severity: Severity
+  component: Component
+  attachments: [Attachment]
+  statusId: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  isDeleted: Boolean
+  deletedBy: String
+  deletedAt: String
+  isSubmitted: Boolean
+  IncidentTags: [IncidentTag]
+  product: Product
+}
+
+type Tag {
+  id: String
+  name: String
+  userId: String
+  user: User
+  createdAt: String
+  updatedAt: String
+  IncidentTags: [IncidentTag]
+}
+
+type IncidentTag {
+  id: String
+  incident: Incident
+  incidentId: String
+  tag: Tag
+  tagId: String
+  createdAt: String
+  updatedAt: String
+}
+
+type Attachment {
+  id: Int
+  incident: Incident
+  incidentId: String
+  extension: String
+  fileName: String
+  shortDescription: String
+  description: String
+  metadata: String
+  fileSize: String
+  fileURL: String
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  isDeleted: Boolean
+  deletedBy: String
+  deletedAt: String
+}
+
+type PieChart {
+  DRAFT: Int
+  Submitted: Int
+  Received: Int
+  TRIAGE_Outstanding: Int
+  In_TRIAGE: Int
+  TRIAGE_Complete: Int
+  Total: Int
+}
+
+type IncidentwithFile {
+  incidentId: ID
+  title: String
+  description: String
+  jiraReference: String
+  projectReference: String
+  incidentTriageOwner: String
+  version: Float
+  notificationsEnabled: Boolean
+  impactDescription: String
+  completionTimestamp: String
+  alertingDate: String
+  clientDepartment: String
+  notificationTargetId: String
+  tagId: String
+  dueDate: String
+  severityId: String
+  incidentOwner: ID
+  incidentBusinessOwner: String
+  additionalContactReference: String
+  documents: [Document]
+  intakeChannelId: String
+  priorityId: String
+  stageId: String
+  statusId: String
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+  numOfFiles: Int
+  is_submitted: Boolean
+  filepath: [String]
+}
+
+type Priority {
+  priorityId: ID
+  shortDescription: String
+  description: String
+  color: String
+  displayOrder: Int
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type Severity {
+  id: String
+  shortDescription: String
+  description: String
+  displayOrder: Int
+  color: String
+  backgroundColor: String
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type Product {
+  id: String
+  name: String
+  description: String
+  version: String
+  price: Float
+  status: String
+  releaseDate: String
+  createdAt: String
+  updatedAt: String
+  applicationType: ApplicationType
+  applicationTypeId: String
+  platform: Platform
+  platformId: String
+  productPurchases: [ProductPurchase]
+  components: [Component]
+}
+
+type Component {
+  id: String
+  name: String
+  productId: String
+  product: Product
+  createdAt: String
+  updatedAt: String
+  incident: [Incident]
+}
+
+type ProductPurchase {
+  id: String
+  productId: String
+  userId: String
+  purchaseDate: String
+  updatedAt: String
+  user: User
+  product: Product
+}
+
+type ApplicationType {
+  id: String
+  type: String
+  products: [Product]
+}
+
+type Platform {
+  id: String
+  name: String
+  products: [Product]
+}
+
+type Status {
+  id: String
+  shortDescription: String
+  description: String
+  displayOrder: Int
+  color: String
+  backgroundColor: String
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+type WorkflowStage {
+  stageId: ID
+  shortDescription: String
+  description: String
+  displayOrder: Int
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type IntakeChannel {
+  intakeChannelId: ID
+  shortDescription: String
+  Description: String
+  displayOrder: Int
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+# type Document {
+#   documentId: ID
+#   incidentId: ID
+#   documentFileTypeId: String
+#   fileName: String
+#   isDeleted: String
+#   shortDescription: String
+#   description: String
+#   metadata: String
+#   fileSize: String
+#   ownerId: String
+#   resourceUrl: String
+#   createdBy: String
+#   createdAt: String
+#   updatedBy: String
+#   updatedAt: String
+#   deletedBy: String
+#   deletedAt: String
+# }
+
+type Components {
+  componentId: ID
+  incidentId: ID
+  tagId: ID
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+  isDeleted: Boolean
+  tag: Tag
+}
+
+type Tag {
+  tagId: ID
+  shortDescription: String
+  description: String
+  displayOrder: Int
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type NotificationType {
+  notificationTypeId: ID
+  shortDescription: String
+  description: String
+  displayOrder: Int
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
+
+type Notification {
+  notificationId: String
+  incidentId: String
+  userId: String
+  topicReferenceId: String
+  isRead: String
+  isDispatched: String
+  shortDescription: String
+  description: String
+  linkToDetailUrlReference: String
+  imageUrlReference: String
+  subjectUrlReference: String
+  timeToLiveInSeconds: String
+  isActive: String
+  gpsCoordinateLatitude: String
+  gpsCoordinateLongitude: String
+  priority: String
+  hostSystem: String
+  port: String
+  senderId: String
+  senderMetadata: String
+  silentNotification: String
+  playSoundReference: String
+  smallIconUrlReference: String
+  applicationModuleReference: String
+  additionalMessageBody: String
+  transmissionErrorDescription: String
+  isEncrypted: String
+  encryptionSecret: String
+  sourceId: String
+  notificationTypeId: String
+  createdBy: String
+  createdAt: String
+  updatedBy: String
+  updatedAt: String
+  deletedBy: String
+  deletedAt: String
+}
