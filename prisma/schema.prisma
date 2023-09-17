@@ -1,0 +1,589 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  rolePolicies RolePolicy[]
+  users        User[]
+}
+
+model Policy {
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String
+  createdAt       DateTime?       @default(now())
+  updatedAt       DateTime?       @updatedAt
+  featurePolicies FeaturePolicy[]
+  rolePolicies    RolePolicy[]
+}
+
+model Plan {
+  id              String            @id @default(uuid()) @db.Uuid
+  name            String
+  price           Float
+  currency        String
+  durationInDays  Int
+  createdAt       DateTime?         @default(now())
+  updatedAt       DateTime?         @updatedAt
+  planFeatures    PlanFeature[]
+  userPlan        UserPlan[]
+  userPlanFeature UserPlanFeature[]
+}
+
+model RolePolicy {
+  id        String    @id @default(uuid())
+  roleId    String    @db.Uuid
+  policyId  String    @db.Uuid
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  policy    Policy    @relation(fields: [policyId], references: [id])
+  role      Role      @relation(fields: [roleId], references: [id])
+}
+
+model User {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  firstName            String?
+  lastName             String?
+  middleName           String?
+  profilePicture       String?
+  companyName          String?
+  dateOfBirth          DateTime?
+  roleId               String                 @db.Uuid
+  createdAt            DateTime?              @default(now())
+  updatedAt            DateTime?              @updatedAt
+  isDeleted            Boolean                @default(false)
+  designationId        String?                @db.Uuid
+  designation          Designation?           @relation(fields: [designationId], references: [id])
+  role                 Role                   @relation(fields: [roleId], references: [id])
+  addresses            Address[]
+  bookmarks            Bookmark[]
+  candidateAddress     CandidateAddress[]
+  candidateJobCategory CandidateJobCategory[]
+  candidatePhone       CandidatePhone[]
+  candidatePreference  CandidatePreference?
+  emails               Email[]
+  jobs                 Job[]
+  jobApplications      JobApplication[]
+  phones               Phone[]
+  recentJobView        RecentJobView[]
+  skills               Skill[]
+  tags                 Tag[]
+  userDocuments        UserDocument[]
+  candidateDocuments   CandidateDocument[]
+  userFeatures         UserFeature[]
+  userPlan             UserPlan[]
+  userPlanFeatures     UserPlanFeature[]
+  userSessions         UserSession[]
+}
+
+model Designation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model Bookmark {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  jobId     String
+  createdAt DateTime? @default(now())
+  job       Job       @relation(fields: [jobId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Job {
+  id                String           @id
+  organizationId    String           @db.Uuid
+  title             String
+  description       String
+  icon              String?
+  statusId          String           @db.Uuid
+  isOpen            Boolean          @default(true)
+  isExpired         Boolean?         @default(false)
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime?        @default(now())
+  updatedAt         DateTime?        @updatedAt
+  categoryId        String           @db.Uuid
+  numberOfSeats     Int?
+  jobLevelId        String?          @db.Uuid
+  jobTypeId         String?          @db.Uuid
+  salaryAmount      Float?
+  additionalDetails String?
+  category          JobCategory      @relation(fields: [categoryId], references: [id])
+  jobLevel          JobLevel?        @relation(fields: [jobLevelId], references: [id])
+  jobType           JobType?         @relation(fields: [jobTypeId], references: [id])
+  organization      User             @relation(fields: [organizationId], references: [id])
+  status            JobStatus        @relation(fields: [statusId], references: [id])
+  address           Address?
+  bookmarks         Bookmark[]
+  jobApplications   JobApplication[]
+  jobDocuments      JobDocument[]
+  question          Question[]
+  recentJobView     RecentJobView[]
+  skills            Skill[]
+  tags              Tag[]
+}
+
+model Question {
+  id          String       @id @default(uuid()) @db.Uuid
+  jobId       String
+  text        String
+  type        QuestionType
+  isMandatory Boolean      @default(false)
+  options     String[]
+  metadata    Json?
+  createdAt   DateTime?    @default(now())
+  updatedAt   DateTime?    @updatedAt
+  job         Job          @relation(fields: [jobId], references: [id])
+}
+
+model CandidateJobSearchHistory {
+  id                Int       @id @default(autoincrement())
+  searchString      String?
+  searchKeywords    String[]
+  salaryAmountRange Float[]
+  jobLevelId        String?
+  jobTypeId         String?
+  skip              Int?
+  take              Int?
+  createdAt         DateTime? @default(now())
+}
+
+model Skill {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  isShared  Boolean   @default(true)
+  userId    String?   @db.Uuid
+  jobId     String?
+  job       Job?      @relation(fields: [jobId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+}
+
+model RecentJobView {
+  id       Int       @id @default(autoincrement())
+  userId   String    @db.Uuid
+  jobId    String
+  viewedAt DateTime? @default(now())
+  job      Job       @relation(fields: [jobId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+}
+
+model JobLevel {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  orderBy   Int?      @default(0)
+  jobs      Job[]
+}
+
+model JobType {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  orderBy   Int?      @default(0)
+  jobs      Job[]
+}
+
+model DocumentCategory {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  createdAt DateTime?  @default(now())
+  updatedAt DateTime?  @updatedAt
+  Document  Document[]
+}
+
+model Document {
+  id           String           @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  fileName     String
+  fileSize     Int
+  fileType     String
+  fileURL      String
+  createdAt    DateTime?        @default(now())
+  updatedAt    DateTime?        @updatedAt
+  categoryId   String           @db.Uuid
+  category     DocumentCategory @relation(fields: [categoryId], references: [id])
+  JobDocument  JobDocument[]
+  UserDocument UserDocument[]
+}
+
+model CandidateDocument {
+  id           String           @id @default(uuid()) @db.Uuid
+  title        String?
+  description  String?
+  fileName     String?
+  fileSize     String?
+  fileSizeInBytes Int?
+  fileType     String?
+  extension    String?
+  fileURL      String?
+  createdAt    DateTime?        @default(now())
+  updatedAt    DateTime?        @updatedAt
+  acceptedTermsConditions Boolean? @default(false)
+  candidateDocumentTypeId   String           @db.Uuid
+  candidateDocumentType     CandidateDocumentType @relation(fields: [candidateDocumentTypeId], references: [id])
+  userId     String   @db.Uuid
+   user       User     @relation(fields: [userId], references: [id])
+}
+
+
+model CandidateDocumentType {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  isTermsConditionsDocument Boolean? @default(false)
+  createdAt DateTime?  @default(now())
+  updatedAt DateTime?  @updatedAt
+  candidateDocument CandidateDocument[]
+}
+
+model JobDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  jobId      String
+  documentId String   @db.Uuid
+  document   Document @relation(fields: [documentId], references: [id])
+  job        Job      @relation(fields: [jobId], references: [id])
+}
+
+model UserDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  documentId String   @db.Uuid
+  document   Document @relation(fields: [documentId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model JobCategory {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  name                 String
+  createdAt            DateTime?              @default(now())
+  updatedAt            DateTime?              @updatedAt
+  candidateJobCategory CandidateJobCategory[]
+  jobs                 Job[]
+}
+
+model Tag {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  userId    String?   @db.Uuid
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  isShared  Boolean?  @default(true)
+  jobId     String?
+  job       Job?      @relation(fields: [jobId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+}
+
+model JobStatus {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  orderBy     Int?      @default(0)
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  jobs        Job[]
+}
+
+model ApplicationStatus {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  orderBy         Int?             @default(0)
+  createdAt       DateTime?        @default(now())
+  updatedAt       DateTime?        @updatedAt
+  jobApplications JobApplication[]
+}
+
+model JobApplication {
+  id          String            @id @default(uuid()) @db.Uuid
+  jobId       String
+  candidateId String            @db.Uuid
+  resumeId    String?           @db.Uuid
+  statusId    String            @db.Uuid
+  appliedAt   DateTime?         @default(now())
+  updatedAt   DateTime?         @updatedAt
+  candidate   User              @relation(fields: [candidateId], references: [id])
+  job         Job               @relation(fields: [jobId], references: [id])
+  status      ApplicationStatus @relation(fields: [statusId], references: [id])
+}
+
+model CandidatePreference {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  userId                   String                 @unique @db.Uuid
+  createdAt                DateTime?              @default(now())
+  updatedAt                DateTime?              @updatedAt
+  isNearMyAddressDefault   Boolean?               @default(false)
+  isWorkInCityDefault      Boolean?               @default(false)
+  workHours                Int?
+  transportationId         String?                @db.Uuid
+  isCurrentLocationDefault Boolean?               @default(false)
+  workHoursTypeId          String?                @db.Uuid
+  transportation           Transportation?        @relation(fields: [transportationId], references: [id])
+  user                     User                   @relation(fields: [userId], references: [id])
+  workHoursType            WorkHoursType?         @relation(fields: [workHoursTypeId], references: [id])
+  jobCategories            CandidateJobCategory[]
+}
+
+model Transportation {
+  id                  String                @id @default(uuid()) @db.Uuid
+  name                String
+  createdAt           DateTime?             @default(now())
+  updatedAt           DateTime?             @updatedAt
+  candidatePreference CandidatePreference[]
+}
+
+model WorkHoursType {
+  id                  String                @id @default(uuid()) @db.Uuid
+  name                String                @unique
+  createdAt           DateTime?             @default(now())
+  updatedAt           DateTime?             @updatedAt
+  candidatePreference CandidatePreference[]
+}
+
+model CandidateJobCategory {
+  id                    String               @id @default(uuid()) @db.Uuid
+  candidateId           String               @db.Uuid
+  categoryId            String               @db.Uuid
+  createdAt             DateTime?            @default(now())
+  updatedAt             DateTime?            @updatedAt
+  candidatePreferenceId String?              @db.Uuid
+  candidate             User                 @relation(fields: [candidateId], references: [id])
+  candidatePreference   CandidatePreference? @relation(fields: [candidatePreferenceId], references: [id])
+  jobCategory           JobCategory          @relation(fields: [categoryId], references: [id])
+}
+
+model Address {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String?   @db.Uuid
+  jobId         String?   @unique
+  latitude      Float
+  longitude     Float
+  location      String?
+  city          String?
+  province      String?
+  zipPostalCode String?
+  country       String?
+  isCurrent     Boolean   @default(false)
+  createdAt     DateTime? @default(now())
+  updatedAt     DateTime? @updatedAt
+  job           Job?      @relation(fields: [jobId], references: [id])
+  user          User?     @relation(fields: [userId], references: [id])
+}
+
+model CandidateAddress {
+  id                     String                @id @default(uuid()) @db.Uuid
+  userId                 String?               @db.Uuid
+  latitude               Float?
+  longitude              Float?
+  location               String?
+  city                   String?
+  province               String?
+  zipPostalCode          String?
+  country                String?
+  createdAt              DateTime?             @default(now())
+  updatedAt              DateTime?             @updatedAt
+  candidateAddressTypeId String?               @db.Uuid
+  radius                 Float?
+  state                  String?
+  candidateAddressType   CandidateAddressType? @relation(fields: [candidateAddressTypeId], references: [id])
+  user                   User?                 @relation(fields: [userId], references: [id])
+}
+
+model CandidateAddressType {
+  id               String             @id @default(uuid()) @db.Uuid
+  name             String
+  createdAt        DateTime?          @default(now())
+  updatedAt        DateTime?          @updatedAt
+  candidateAddress CandidateAddress[]
+}
+
+model UserSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  signInTime  DateTime
+  signOutTime DateTime?
+  deviceInfo  String?
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Feature {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String
+  description      String
+  isCore           Boolean
+  hasQuantity      Boolean
+  createdAt        DateTime?         @default(now())
+  updatedAt        DateTime?         @updatedAt
+  featurePolicies  FeaturePolicy[]
+  planFeatures     PlanFeature[]
+  userFeatures     UserFeature[]
+  userPlanFeatures UserPlanFeature[]
+}
+
+model FeaturePolicy {
+  id        String    @id @default(uuid()) @db.Uuid
+  featureId String    @db.Uuid
+  policyId  String    @db.Uuid
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  feature   Feature   @relation(fields: [featureId], references: [id])
+  policy    Policy    @relation(fields: [policyId], references: [id])
+}
+
+model PlanFeature {
+  id        String    @id @default(uuid()) @db.Uuid
+  quantity  Int
+  planId    String    @db.Uuid
+  featureId String    @db.Uuid
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  feature   Feature   @relation(fields: [featureId], references: [id])
+  plan      Plan      @relation(fields: [planId], references: [id])
+}
+
+model UserFeature {
+  id            String    @id @default(uuid()) @db.Uuid
+  totalQuantity Int
+  usedQuantity  Int
+  userId        String    @db.Uuid
+  featureId     String    @db.Uuid
+  createdAt     DateTime? @default(now())
+  updatedAt     DateTime? @updatedAt
+  feature       Feature   @relation(fields: [featureId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+}
+
+model UserPlanFeature {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  planId           String    @db.Uuid
+  featureId        String    @db.Uuid
+  userPlanId       String    @db.Uuid
+  totalQuantity    Int
+  consumedQuantity Int
+  createdAt        DateTime? @default(now())
+  updatedAt        DateTime? @updatedAt
+  feature          Feature   @relation(fields: [featureId], references: [id])
+  plan             Plan      @relation(fields: [planId], references: [id])
+  user             User      @relation(fields: [userId], references: [id])
+  userPlan         UserPlan  @relation(fields: [userPlanId], references: [id])
+}
+
+model UserPlan {
+  id               String            @id @default(uuid()) @db.Uuid
+  startDate        DateTime          @default(now())
+  endDate          DateTime?
+  userId           String            @db.Uuid
+  planId           String            @db.Uuid
+  createdAt        DateTime?         @default(now())
+  updatedAt        DateTime?         @updatedAt
+  plan             Plan              @relation(fields: [planId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  userPlanFeatures UserPlanFeature[]
+}
+
+model PlanHistory {
+  id        String    @id @default(uuid()) @db.Uuid
+  startDate DateTime
+  endDate   DateTime
+  userId    String
+  planId    String    @db.Uuid
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Email {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String    @unique
+  isPrimary   Boolean   @default(false)
+  userId      String    @db.Uuid
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  description String?
+  department  String?
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model Phone {
+  id          String    @id @default(uuid()) @db.Uuid
+  phone       String    @unique
+  isPrimary   Boolean   @default(false)
+  userId      String    @db.Uuid
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  description String?
+  department  String?
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model CandidatePhoneType {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique
+  createdAt       DateTime?        @default(now())
+  updatedAt       DateTime?        @updatedAt
+  candidatePhones CandidatePhone[]
+}
+
+model CandidatePhone {
+  id                   String              @id @default(uuid()) @db.Uuid
+  userId               String              @db.Uuid
+  number               String
+  createdAt            DateTime?           @default(now())
+  updatedAt            DateTime?           @updatedAt
+  candidatePhoneTypeId String?             @db.Uuid
+  candidatePhonetype   CandidatePhoneType? @relation(fields: [candidatePhoneTypeId], references: [id])
+  user                 User                @relation(fields: [userId], references: [id])
+}
+
+model unique_key_count {
+  id       Int    @unique @default(autoincrement())
+  jobCount Int    @default(1000011)
+  prefix   String @default("A")
+}
+
+model temp {
+  id   Int    @unique @default(autoincrement())
+  name String
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model canadacities {
+  city          String?
+  city_ascii    String?
+  province_id   String?
+  province_name String?
+  lat           Decimal? @db.Decimal
+  lng           Decimal? @db.Decimal
+  population    BigInt?
+  density       Decimal? @db.Decimal
+  timezone      String?
+  ranking       Int?
+  postal        String?
+  id            BigInt @unique @id
+
+
+}
+
+enum QuestionType {
+  RADIO_BUTTON
+  CHECKBOX
+  TEXT_FIELD
+  DESCRIPTION
+}
