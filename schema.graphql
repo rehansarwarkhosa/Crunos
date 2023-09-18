@@ -136,6 +136,8 @@ type Query {
 }
 
 type Mutation {
+  DeleteCandidateDocument(id: String!): JSON
+
   UploadCandidateDocument(
     candidateFileType: String!
     file: Upload
