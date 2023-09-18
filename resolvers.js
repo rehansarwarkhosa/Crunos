@@ -562,7 +562,24 @@ const resolvers = {
     },
 
     GetUserLocation: async (parent, args, { prisma }) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
       try {
         const userAddress = await prisma.address.findFirst({
           where: {
@@ -602,7 +619,25 @@ const resolvers = {
       }
     },
     IsAlreadyApplied: async (_, { jobId }, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
       try {
         // Check if the job exists
         const jobExists = await context.prisma.job.findUnique({
@@ -687,7 +722,24 @@ const resolvers = {
     },
 
     GetTotalBookmarkedJobCount: async (parent, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186"; // Replace with the actual user's ID
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186"; // Replace with the actual user's ID
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       try {
         // Fetch the count of bookmarked jobs associated with the user
@@ -704,7 +756,24 @@ const resolvers = {
       }
     },
     GetTotalAppliedJobCount: async (parent, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       try {
         // Fetch the count of job applications associated with the user
@@ -826,7 +895,24 @@ const resolvers = {
     // },
 
     GetBookmarkedJobs: async (_, { jobStatusId, skip, take }, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       if (jobStatusId && !isUUID(jobStatusId)) {
         throw new Error("Invalid jobStatusId format.");
@@ -886,7 +972,24 @@ const resolvers = {
     },
 
     GetAppliedJobs: async (parent, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       // Extract the filter parameters from the args object
       const { applicationStatusId, skip, take } = args;
@@ -1019,7 +1122,25 @@ const resolvers = {
     GetJobById: async (parent, args, context) => {
       console.log(context.token);
       try {
-        const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+        // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+        console.log("----------------------------------------------");
+        let userId = null;
+
+        userId = await validateCognitoToken(context.token);
+        try {
+          if (userId) {
+            console.log("Token is valid. User ID:", userId);
+          } else {
+            console.log("Token is invalid or expired.");
+            throw new Error("Invalid token!");
+          }
+        } catch (error) {
+          console.error("An error occurred:", error);
+          throw new Error("Invalid token!", error);
+        }
+        console.log("----------------------------------------------");
+
         const { id } = args;
 
         console.log(`Fetching job for incident with ID ${id}...`);
@@ -1121,7 +1242,25 @@ const resolvers = {
     },
 
     RecentJobViews: async (_, { skip, take }, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
       const sanitizedSkip = Math.max(0, parseInt(skip) || 0);
       const sanitizedTake = Math.max(0, parseInt(take) || 10);
 
@@ -1185,7 +1324,25 @@ const resolvers = {
     },
 
     GetUserProfile: async (parent, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
       try {
         const user = await context.prisma.user.findUnique({
           where: {
@@ -1304,23 +1461,30 @@ const resolvers = {
           },
         });
 
-        for (let i = 0; i < _user.candidatePhone.length; ++i) {
-          if (
-            _user.candidatePhone[i].candidatePhoneTypeId ===
-            "a91144a1-8e5a-4b84-8f94-bf06f1152a1c"
-          ) {
-            console.log("Personal Phone Fields exists");
-            filledFields++;
-          }
-        }
+        // console.log("=======================================");
 
-        for (let i = 0; i < _user.candidatePhone.length; ++i) {
-          if (
-            _user.candidatePhone[i].candidatePhoneTypeId ===
-            "56e4bc6e-620c-40f5-aaa0-22d6e2066c4e"
-          ) {
-            console.log("Emergency Phone Fields exists");
-            filledFields++;
+        // console.log(_user);
+
+        // console.log("=======================================");
+        if (_user.candidatePhone.length > 0) {
+          for (let i = 0; i < _user.candidatePhone.length; ++i) {
+            if (
+              _user.candidatePhone[i].candidatePhoneTypeId ===
+              "a91144a1-8e5a-4b84-8f94-bf06f1152a1c"
+            ) {
+              console.log("Personal Phone Fields exists");
+              filledFields++;
+            }
+          }
+
+          for (let i = 0; i < _user.candidatePhone.length; ++i) {
+            if (
+              _user.candidatePhone[i].candidatePhoneTypeId ===
+              "56e4bc6e-620c-40f5-aaa0-22d6e2066c4e"
+            ) {
+              console.log("Emergency Phone Fields exists");
+              filledFields++;
+            }
           }
         }
 
@@ -1407,7 +1571,24 @@ const resolvers = {
     },
 
     NearbyJobs: async (_, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       const { skip, take } = args;
 
@@ -1557,7 +1738,23 @@ const resolvers = {
     },
 
     DistantJobs: async (_, args, context) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       const { skip, take } = args;
 
@@ -1932,7 +2129,25 @@ const resolvers = {
       },
       context
     ) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
       const sanitizedSkip = Math.max(0, parseInt(skip) || 0);
       const sanitizedTake = Math.max(0, parseInt(take) || 10);
 
@@ -2909,7 +3124,25 @@ const resolvers = {
       { candidateFileType, file, accepted },
       context
     ) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
       // Check if candidateFileType is valid
       let validDocumentTypes =
         await context.prisma.candidateDocumentType.findMany({
@@ -3246,7 +3479,24 @@ const resolvers = {
         nearMyAddressRadius,
       } = args;
 
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
       try {
         // Check if the user exists
         const existingUser = await context.prisma.user.findUnique({
@@ -3487,8 +3737,24 @@ const resolvers = {
       } = args;
 
       try {
-        const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+        // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
+        console.log("----------------------------------------------");
+        let userId = null;
+
+        userId = await validateCognitoToken(context.token);
+        try {
+          if (userId) {
+            console.log("Token is valid. User ID:", userId);
+          } else {
+            console.log("Token is invalid or expired.");
+            throw new Error("Invalid token!");
+          }
+        } catch (error) {
+          console.error("An error occurred:", error);
+          throw new Error("Invalid token!", error);
+        }
+        console.log("----------------------------------------------");
         // Fetch the user
         let user = await context.prisma.user.findUnique({
           where: { id: userId },
@@ -3708,7 +3974,24 @@ const resolvers = {
     },
 
     SetUserLocation: async (_, { latitude, longitude }, { prisma }) => {
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
       if (!userId || !latitude || !longitude) {
         throw new Error("Invalid input data.");
       }
@@ -3759,7 +4042,24 @@ const resolvers = {
     },
     RevokeJobApplication: async (parent, args, context) => {
       const { applicationId } = args;
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       try {
         // Check if the job application exists and belongs to the user
@@ -3803,7 +4103,24 @@ const resolvers = {
 
     ApplyToJob: async (parent, args, context) => {
       const { jobId, resumeId } = args;
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
       const openStatusIds = [
         "d42ea4eb-b130-4a25-8d81-206e1fce5d48",
         // "875e229d-8001-4290-acdf-fd20410d4cb6",
@@ -3879,7 +4196,24 @@ const resolvers = {
     },
     BookmarkJob: async (parent, args, context) => {
       const { jobId } = args;
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
 
       try {
         // Check if the user and job exist
@@ -3928,8 +4262,24 @@ const resolvers = {
     },
     UnbookmarkJob: async (parent, args, context) => {
       const { jobId } = args;
-      const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
       try {
         // Check if the user and job exist
         const user = await context.prisma.user.findUnique({
