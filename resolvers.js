@@ -3119,6 +3119,47 @@ const resolvers = {
   },
 
   Mutation: {
+    DeleteCandidateDocument: async (_, { id }, context) => {
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
+      try {
+        const deletedCandidateDocument =
+          await context.prisma.candidateDocument.deleteMany({
+            where: {
+              id,
+              userId,
+            },
+          });
+
+        return {
+          success: true,
+          message: "CandidateDocument deleted successfully",
+          raw: deletedCandidateDocument,
+        };
+      } catch (error) {
+        console.error("Error deleting CandidateDocument:", error);
+        return {
+          success: false,
+          message: "Failed to delete CandidateDocument",
+          raw: null,
+        };
+      }
+    },
     UploadCandidateDocument: async (
       _,
       { candidateFileType, file, accepted },
