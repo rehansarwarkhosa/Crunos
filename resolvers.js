@@ -2,6 +2,7 @@ const express = require("express");
 var path = require("path");
 var axios = require("axios");
 var FormData = require("form-data");
+const { Readable } = require("stream");
 // var request = require("request");
 var fs = require("fs");
 var data = new FormData();
@@ -3017,6 +3018,7 @@ const resolvers = {
       let fileType = null;
       let extension = null;
       let fileSizeInBytes = 0;
+      let fileURL = null;
       let ExtensionList = [
         "jpg",
         "jpeg",
@@ -3046,10 +3048,34 @@ const resolvers = {
         fileType = mimetype;
 
         const stream = createReadStream();
+        // console.log(stream);
+        // stream.on("data", (chunk) => {
+        //   fileSizeInBytes += chunk.length;
+        // });
+        // Convert the Readable stream to a Node.js stream
+        const readableStream = new Readable();
+        readableStream._read = () => {}; // Ensure the stream is in flowing mode
 
+        // Pipe the GraphQL upload stream directly to the readableStream
         stream.on("data", (chunk) => {
-          fileSizeInBytes += chunk.length;
+          // fileSizeInBytes += chunk.length; // Increment file size
+          readableStream.push(chunk);
         });
+        stream.on("end", () => {
+          readableStream.push(null); // Signal the end of the stream
+        });
+
+        fileSizeInBytes = 2678793;
+        // const localFilePath = path.join(__dirname, "uploads", filename);
+        // console.log(localFilePath);
+        // // Save the file locally
+        // const localWriteStream = fs.createWriteStream(localFilePath);
+        // await stream.pipe(localWriteStream);
+
+        // // Read the file using fs
+        // const fileStream = fs.createReadStream(localFilePath);
+
+        // fs.createReadStream(localFilePath), console.log(fileStream);
 
         const fileSizeInKB = bytesToKB(fileSizeInBytes);
         const fileSizeInMB = bytesToMB(fileSizeInBytes);
@@ -3091,97 +3117,117 @@ const resolvers = {
         let url = path.join(`${name}-${Date.now()}.${ext}`);
 
         filename_after_uploading = url;
-
-        const s3 = new AWS.S3({
-          accessKeyId: "AKIATKYZNRHSXK2VEIH4", // Access key ID
-          secretAccesskey: "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", // Secret access key
+        AWS.config.update({
+          accessKeyId: "AKIAUUWI6OUAROXDTLIW",
+          secretAccessKey: "Ybsrmc9rxS/jcvmcakNYyw1hBRXSaSijIDx7xRJB",
+          //   region: "YOUR_REGION",
         });
+        //akram
+        const s3 = new AWS.S3();
+        const bucketName = "crunos-internal-bucket/test";
 
-        function upload_file() {
+        async function uploadFile() {
+          const uploadParams = {
+            Bucket: bucketName,
+            Key: filename_after_uploading,
+            Body: readableStream,
+          };
+
+          try {
+            const data = await s3.upload(uploadParams).promise();
+            // console.log("File uploaded successfully. ETag:", data.ETag);
+            // console.log(data);
+            return data;
+          } catch (error) {
+            console.error("Error uploading file:", error);
+            throw error;
+          }
+        }
+
+        async function upload_file() {
           return new Promise(async (resolve) => {
-            const params = {
-              Bucket: "backend-staging-bucket/aamanto-admin-blog-files", //backend-staging-bucket
-              Key: url,
-              Body: stream,
-              ContentType: mimetype,
-            };
+            //-------------------------------------
+            uploadFile()
+              .then(async (data) => {
+                console.log("File uploaded successfully:", data);
+                file_path_after_uploading = data.Location;
 
-            // Uploading files to the bucket
-            s3.upload(params, function (err, data) {
-              if (err) {
-                //throw err;
-                console.log(err);
-                return "failure";
-              }
-              console.log(`file uploaded successfully. ${data.Location}`);
-              file_path_after_uploading = data.Location;
-              resolve();
-            });
+                // console.log(file_path_after_uploading);
+                // console.log(filename_after_uploading);
+
+                // Assuming you have saved the uploaded file URL and filename
+                fileURL = file_path_after_uploading; // Replace with your file URL
+                console.log("file URL: ", file_path_after_uploading);
+                const fileName = filename_after_uploading; // Replace with your filename
+
+                const existingCandidateDocument =
+                  await context.prisma.candidateDocument.findFirst({
+                    where: {
+                      candidateDocumentTypeId: candidateFileType,
+                    },
+                  });
+
+                if (existingCandidateDocument) {
+                  // If the record exists, update acceptedTermsConditions
+                  const updatedCandidateDocument =
+                    await context.prisma.candidateDocument.update({
+                      where: {
+                        id: existingCandidateDocument.id,
+                      },
+                      data: {
+                        candidateDocumentTypeId: candidateFileType,
+                        fileName,
+                        fileURL,
+                        fileSize,
+                        fileSizeInBytes,
+                        extension,
+                        fileType,
+                        // acceptedTermsConditions: accepted,
+                      },
+                    });
+                  // console.log(
+                  // "Updated existing candidate document:",
+                  // updatedCandidateDocument
+                  // );
+                  resolve({ success: true, raw: updatedCandidateDocument });
+                  return { success: true, raw: updatedCandidateDocument };
+                }
+
+                // Assuming you have a Prisma instance available in the context
+                const newCandidateDocument =
+                  await context.prisma.candidateDocument.create({
+                    data: {
+                      candidateDocumentTypeId: candidateFileType,
+                      fileName,
+                      fileURL,
+                      fileSize,
+                      fileSizeInBytes,
+                      extension,
+                      fileType,
+                      userId,
+                      // acceptedTermsConditions: accepted,
+                    },
+                  });
+                resolve({ success: true, raw: newCandidateDocument });
+                return { success: true, raw: newCandidateDocument };
+
+                // return { success: true, raw: "" };
+              })
+              .catch((error) => {
+                console.error("Error uploading file:", error);
+                resolve({ success: false, raw: "" });
+                return { success: false, raw: "" };
+              });
+
+            //-------------------------------------
           });
         }
 
-        await upload_file();
+        const returnVal = await upload_file();
+        return returnVal;
       }
 
-      console.log(file_path_after_uploading);
-      console.log(filename_after_uploading);
-
-      // Assuming you have saved the uploaded file URL and filename
-      const fileURL = file_path_after_uploading; // Replace with your file URL
-      const fileName = filename_after_uploading; // Replace with your filename
-
-      const existingCandidateDocument =
-        await context.prisma.candidateDocument.findFirst({
-          where: {
-            candidateDocumentTypeId: candidateFileType,
-          },
-        });
-
-      if (existingCandidateDocument) {
-        // If the record exists, update acceptedTermsConditions
-        const updatedCandidateDocument =
-          await context.prisma.candidateDocument.update({
-            where: {
-              id: existingCandidateDocument.id,
-            },
-            data: {
-              candidateDocumentTypeId: candidateFileType,
-              fileName,
-              fileURL,
-              fileSize,
-              fileSizeInBytes,
-              extension,
-              fileType,
-              // acceptedTermsConditions: accepted,
-            },
-          });
-        console.log(
-          "Updated existing candidate document:",
-          updatedCandidateDocument
-        );
-
-        return { success: true, raw: updatedCandidateDocument };
-      }
-
-      // Assuming you have a Prisma instance available in the context
-      const newCandidateDocument =
-        await context.prisma.candidateDocument.create({
-          data: {
-            candidateDocumentTypeId: candidateFileType,
-            fileName,
-            fileURL,
-            fileSize,
-            fileSizeInBytes,
-            extension,
-            fileType,
-            userId,
-            // acceptedTermsConditions: accepted,
-          },
-        });
-
-      return { success: true, raw: newCandidateDocument };
-
-      // return newCandidateDocument;
+      // return null;
     },
     UpdateMyWorkInformation: async (_, args, context) => {
       const {
