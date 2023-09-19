@@ -1549,6 +1549,10 @@ const resolvers = {
             ? " " + user.lastName
             : "");
 
+        if (user.name === "null") {
+          user.name = null;
+        }
+
         return user;
       } catch (error) {
         console.error("Error fetching user profile:", error);
