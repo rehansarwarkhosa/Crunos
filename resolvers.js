@@ -561,7 +561,7 @@ const resolvers = {
       return _location;
     },
 
-    GetUserLocation: async (parent, args, { prisma }) => {
+    GetUserLocation: async (parent, args, context) => {
       // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
       console.log("----------------------------------------------");
@@ -581,7 +581,7 @@ const resolvers = {
       }
       console.log("----------------------------------------------");
       try {
-        const userAddress = await prisma.address.findFirst({
+        const userAddress = await context.prisma.address.findFirst({
           where: {
             userId: userId,
             isCurrent: true,
@@ -3212,6 +3212,9 @@ const resolvers = {
       ];
 
       if (!documentTypesWithoutFile.includes(candidateFileType)) {
+        console.log(
+          "------------------------condition true 1--------------------------"
+        );
         // Check if a file was provided
         if (!file) {
           return {
@@ -3220,7 +3223,10 @@ const resolvers = {
           };
           // throw new Error("A file is required for this document type.");
         }
-      } else {
+      } else if (documentTypesWithoutFile.includes(candidateFileType)) {
+        console.log(
+          "------------------------condition true 2 --------------------------"
+        );
         // validDocumentTypes =
         //   await context.prisma.candidateDocumentType.findMany({
         //     where: {
@@ -3239,12 +3245,16 @@ const resolvers = {
         const existingCandidateDocument =
           await context.prisma.candidateDocument.findFirst({
             where: {
+              userId,
               candidateDocumentTypeId: candidateFileType,
             },
           });
 
         if (existingCandidateDocument) {
           // If the record exists, update acceptedTermsConditions
+          console.log(
+            "------------------------condition true 3 --------------------------"
+          );
           const updatedCandidateDocument =
             await context.prisma.candidateDocument.update({
               where: {
@@ -3263,10 +3273,14 @@ const resolvers = {
         } else {
           // If the record doesn't exist, create a new one
 
+          console.log(
+            "------------------------condition true 4--------------------------"
+          );
+
           console.log("Condition True!");
 
-          console.log(candidateFileType);
-          console.log(accepted);
+          // console.log(candidateFileType);
+          // console.log(accepted);
           const newCandidateDocument =
             await context.prisma.candidateDocument.create({
               data: {
@@ -3295,8 +3309,10 @@ const resolvers = {
       let fileSize = null;
       let fileType = null;
       let extension = null;
-      let fileSizeInBytes = 0;
+      let fileSizeInBytes = null;
       let fileURL = null;
+      let fileSizeInKB = null;
+      let fileSizeInMB = null;
       let ExtensionList = [
         "jpg",
         "jpeg",
@@ -3319,13 +3335,88 @@ const resolvers = {
       let is_valid_extension;
 
       //============================= resume =============================================
+
       console.log("Before file upload");
+
+      // Pipe the GraphQL upload stream directly to a temporary file
 
       if (file) {
         const { createReadStream, filename, mimetype, encoding } = await file;
         fileType = mimetype;
 
         const stream = createReadStream();
+
+        const tempFilePath = "./tempfile"; // Adjust the path and filename as needed
+        const writeStream = fs.createWriteStream(tempFilePath);
+        stream.pipe(writeStream);
+
+        const MAX_FILE_SIZE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB in bytes
+        //nadeem omer
+        writeStream.on("finish", () => {
+          const stats = fs.statSync(tempFilePath);
+          fileSizeInBytes = stats.size;
+
+          // Now you can use the fileSizeInBytes as needed
+          // e.g., store it in a database or do further processing
+          // ...
+
+          // Check if the file size exceeds the maximum allowed size
+
+          if (fileSizeInBytes >= 1024 * 1024) {
+            fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+            fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+          } else if (fileSizeInBytes >= 1024) {
+            fileSizeInKB = fileSizeInBytes / 1024;
+            fileSize = `${fileSizeInKB.toFixed(2)} KB`;
+          } else {
+            fileSize = `${fileSizeInBytes} Byte${
+              fileSizeInBytes !== 1 ? "s" : ""
+            }`;
+          }
+
+          console.log("File size in bytes:", fileSizeInBytes);
+
+          if (fileSizeInBytes > MAX_FILE_SIZE_BYTES) {
+            // Cleanup the temporary file
+            fs.unlinkSync(tempFilePath);
+
+            return {
+              success: false,
+              message: "File size exceeds the maximum allowed size (1.5 MB).",
+            };
+          }
+        });
+
+        fileSize = setTimeout(function () {
+          if (fileSize) {
+            if (fileSizeInBytes >= 1000000) {
+              return { success: false, message: "Very long size!" };
+            }
+          }
+        }, 100);
+
+        console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+
+        console.log(fileSize);
+        console.log(fileSize);
+        console.log(fileSize);
+        console.log(fileSize);
+        console.log(fileSize);
+        console.log(fileSize);
+
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+
         // console.log(stream);
         // stream.on("data", (chunk) => {
         //   fileSizeInBytes += chunk.length;
@@ -3343,7 +3434,7 @@ const resolvers = {
           readableStream.push(null); // Signal the end of the stream
         });
 
-        fileSizeInBytes = 2678793;
+        // fileSizeInBytes = 2678793;
         // const localFilePath = path.join(__dirname, "uploads", filename);
         // console.log(localFilePath);
         // // Save the file locally
@@ -3355,24 +3446,19 @@ const resolvers = {
 
         // fs.createReadStream(localFilePath), console.log(fileStream);
 
-        const fileSizeInKB = bytesToKB(fileSizeInBytes);
-        const fileSizeInMB = bytesToMB(fileSizeInBytes);
+        // const fileSizeInKB = bytesToKB(fileSizeInBytes);
+        // const fileSizeInMB = bytesToMB(fileSizeInBytes);
+        //nadeem
+
+        console.log("=============================");
+
+        console.log(fileSizeInBytes);
+
+        console.log("=============================");
 
         console.log("Size in Byte: ", fileSizeInBytes);
         console.log("Size in KB: ", fileSizeInKB);
         console.log("Size in MB: ", fileSizeInMB);
-
-        if (fileSizeInBytes >= 1024 * 1024) {
-          const fileSizeInMB = fileSizeInBytes / (1024 * 1024);
-          fileSize = `${fileSizeInMB.toFixed(2)} MB`;
-        } else if (fileSizeInBytes >= 1024) {
-          const fileSizeInKB = fileSizeInBytes / 1024;
-          fileSize = `${fileSizeInKB.toFixed(2)} KB`;
-        } else {
-          fileSize = `${fileSizeInBytes} Byte${
-            fileSizeInBytes !== 1 ? "s" : ""
-          }`;
-        }
 
         console.log("Final caluclated file size: ", fileSize);
 
@@ -3441,6 +3527,7 @@ const resolvers = {
                 const existingCandidateDocument =
                   await context.prisma.candidateDocument.findFirst({
                     where: {
+                      userId,
                       candidateDocumentTypeId: candidateFileType,
                     },
                   });
@@ -4018,7 +4105,7 @@ const resolvers = {
       }
     },
 
-    SetUserLocation: async (_, { latitude, longitude }, { prisma }) => {
+    SetUserLocation: async (_, { latitude, longitude }, context) => {
       // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
       console.log("----------------------------------------------");
@@ -4065,7 +4152,7 @@ const resolvers = {
           latitude,
           longitude,
           location,
-          prisma
+          context.prisma
         );
         return {
           success: true,
