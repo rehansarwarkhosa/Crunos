@@ -79,16 +79,17 @@ async function reverseGeocode(latitude, longitude) {
 const updateAddress = async (userId, latitude, longitude, location, prisma) => {
   try {
     // Check if the user already has a current address
-    const existingAddress = await prisma.address.findFirst({
+    const existingAddress = await prisma.CandidateAddress.findFirst({
       where: {
+        candidateAddressTypeId: "2e42c035-a10f-463f-8ca5-a335ed1e504b",
         userId: userId,
-        isCurrent: true,
+        // isCurrent: true,
       },
     });
 
     // If an existing current address is found, update it
     if (existingAddress) {
-      const updatedAddress = await prisma.address.update({
+      const updatedAddress = await prisma.CandidateAddress.update({
         where: {
           id: existingAddress.id,
         },
@@ -103,12 +104,13 @@ const updateAddress = async (userId, latitude, longitude, location, prisma) => {
     }
 
     // If no existing current address is found, create a new address record
-    const newAddress = await prisma.address.create({
+    const newAddress = await prisma.CandidateAddress.create({
       data: {
         userId: userId,
         latitude: latitude,
         longitude: longitude,
-        isCurrent: true,
+        candidateAddressTypeId: "2e42c035-a10f-463f-8ca5-a335ed1e504b",
+        // isCurrent: true,
       },
     });
 
@@ -3362,11 +3364,17 @@ const resolvers = {
 
           // Check if the file size exceeds the maximum allowed size
 
+          // Calculate file size in KB and MB
           if (fileSizeInBytes >= 1024 * 1024) {
             fileSizeInMB = fileSizeInBytes / (1024 * 1024);
-            fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+            fileSizeInKB = fileSizeInBytes / 1024;
           } else if (fileSizeInBytes >= 1024) {
             fileSizeInKB = fileSizeInBytes / 1024;
+          }
+
+          if (fileSizeInMB) {
+            fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+          } else if (fileSizeInKB) {
             fileSize = `${fileSizeInKB.toFixed(2)} KB`;
           } else {
             fileSize = `${fileSizeInBytes} Byte${
@@ -3375,6 +3383,9 @@ const resolvers = {
           }
 
           console.log("File size in bytes:", fileSizeInBytes);
+          console.log("Size in KB:", fileSizeInKB);
+          console.log("Size in MB:", fileSizeInMB);
+          console.log("Final calculated file size:", fileSize);
 
           if (fileSizeInBytes > MAX_FILE_SIZE_BYTES) {
             // Cleanup the temporary file
@@ -3394,17 +3405,6 @@ const resolvers = {
             }
           }
         }, 100);
-
-        console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-
-        console.log("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-
-        console.log(fileSize);
-        console.log(fileSize);
-        console.log(fileSize);
-        console.log(fileSize);
-        console.log(fileSize);
-        console.log(fileSize);
 
         // console.log(fileSizeInBytes);
         // console.log(fileSizeInBytes);
