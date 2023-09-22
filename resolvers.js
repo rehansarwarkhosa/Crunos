@@ -1605,15 +1605,74 @@ const resolvers = {
             addresses: {
               where: { isCurrent: true },
             },
+            candidateAddress: true,
+            candidatePreference: true,
           },
         });
+
+        let userLatitude = userResult.addresses[0].latitude;
+        let userLongitude = userResult.addresses[0].longitude;
+
+        console.log(userLatitude);
+        console.log(userLongitude);
+        let LocationPreference = null;
+        let isSearchByCity = false;
+        let city = null;
+
+        // 2e42c035-a10f-463f-8ca5-a335ed1e504b       My Current Location
+        // 7d49edb5-ea56-42f4-a21a-c182c851afdf       Near My Address
+        // ecd2af27-3783-42ff-93b5-81568d205ae6       Work In a Particular City
 
         if (userResult.length === 0) {
           throw new Error("User not found.");
         }
 
-        const userLatitude = userResult.addresses[0].latitude;
-        const userLongitude = userResult.addresses[0].longitude;
+        if (userResult.candidatePreference.isCurrentLocationDefault) {
+          console.log("Current Location");
+          LocationPreference = "2e42c035-a10f-463f-8ca5-a335ed1e504b";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+            }
+          }
+        } else if (userResult.candidatePreference.isNearMyAddressDefault) {
+          console.log("Near My Address");
+          LocationPreference = "7d49edb5-ea56-42f4-a21a-c182c851afdf";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+            }
+          }
+        } else if (userResult.candidatePreference.isWorkInCityDefault) {
+          console.log("Work In a Particular City");
+          LocationPreference = "ecd2af27-3783-42ff-93b5-81568d205ae6";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              isSearchByCity = true;
+              city = userResult.candidateAddress[i].city;
+            }
+          }
+        } else {
+          console.log("User Preference is not set for user: ", userId);
+        }
+
+        console.log("---------------------------------------");
+        console.log(userLatitude);
+        console.log(userLongitude);
 
         const query = `
         SELECT "Job".id, "Job".title, "Job".description, "Address".latitude, "Address".longitude,
@@ -1632,7 +1691,7 @@ const resolvers = {
           ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography,
           50000
         )
-        AND "Job"."statusId" != '17571ecf-5ec5-4dea-8fd4-45ee61cb180d' -- Exclude specific status ID
+        AND "Job"."statusId" != '5ac89c4d-7587-4e2d-8227-6df4e943fb18' -- Exclude specific status ID
         ORDER BY ST_Distance(
           ST_MakePoint("Address".longitude, "Address".latitude)::geography,
           ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography
@@ -1771,15 +1830,74 @@ const resolvers = {
             addresses: {
               where: { isCurrent: true },
             },
+            candidateAddress: true,
+            candidatePreference: true,
           },
         });
+
+        let userLatitude = userResult.addresses[0].latitude;
+        let userLongitude = userResult.addresses[0].longitude;
+
+        console.log(userLatitude);
+        console.log(userLongitude);
+        let LocationPreference = null;
+        let isSearchByCity = false;
+        let city = null;
+
+        // 2e42c035-a10f-463f-8ca5-a335ed1e504b       My Current Location
+        // 7d49edb5-ea56-42f4-a21a-c182c851afdf       Near My Address
+        // ecd2af27-3783-42ff-93b5-81568d205ae6       Work In a Particular City
 
         if (userResult.length === 0) {
           throw new Error("User not found.");
         }
 
-        const userLatitude = userResult.addresses[0].latitude;
-        const userLongitude = userResult.addresses[0].longitude;
+        if (userResult.candidatePreference.isCurrentLocationDefault) {
+          console.log("Current Location");
+          LocationPreference = "2e42c035-a10f-463f-8ca5-a335ed1e504b";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+            }
+          }
+        } else if (userResult.candidatePreference.isNearMyAddressDefault) {
+          console.log("Near My Address");
+          LocationPreference = "7d49edb5-ea56-42f4-a21a-c182c851afdf";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+            }
+          }
+        } else if (userResult.candidatePreference.isWorkInCityDefault) {
+          console.log("Work In a Particular City");
+          LocationPreference = "ecd2af27-3783-42ff-93b5-81568d205ae6";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              isSearchByCity = true;
+              city = userResult.candidateAddress[i].city;
+            }
+          }
+        } else {
+          console.log("User Preference is not set for user: ", userId);
+        }
+
+        console.log("---------------------------------------");
+        console.log(userLatitude);
+        console.log(userLongitude);
 
         const query = `
         SELECT "Job".id, "Job".title, "Job".description, "Address".latitude, "Address".longitude,
@@ -1798,7 +1916,7 @@ const resolvers = {
           ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography,
           50000
         )
-        AND "Job"."statusId" != '17571ecf-5ec5-4dea-8fd4-45ee61cb180d' -- Exclude specific status ID
+        AND "Job"."statusId" != '5ac89c4d-7587-4e2d-8227-6df4e943fb18' -- Exclude specific status ID
         ORDER BY ST_Distance(
           ST_MakePoint("Address".longitude, "Address".latitude)::geography,
           ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography
