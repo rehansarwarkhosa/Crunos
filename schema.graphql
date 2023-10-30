@@ -65,6 +65,7 @@ type Query {
   DropdownJobLevels: JSON
   DropdownJobTypes: JSON
   NearbyJobs(skip: Int!, take: Int!): [Job]
+  AllJobsByDistance(skip: Int!, take: Int!): [Job]
   DistantJobs(skip: Int!, take: Int!): [Job]
   CandidateJobSearch(
     searchString: String
@@ -133,6 +134,10 @@ type Query {
   DropdownWorkHoursTypes(skip: Int, take: Int): JSON
   DropdownTransportations(skip: Int, take: Int): JSON
   DropdownJobCategories(searchString: String, skip: Int, take: Int): JSON
+
+  GetDashboardStatistics: JSON
+
+  PaidAdvertisements: [String]
 }
 
 type Mutation {
@@ -212,6 +217,8 @@ type Job {
   tags: [Tag]
   jobDocuments: [JobDocument]
   numberOfSeats: Int
+  experience: String
+  qualification: String
   jobLevel: JobLevel
   jobType: JobType
   salaryAmount: Float
