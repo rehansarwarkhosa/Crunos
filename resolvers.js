@@ -178,6 +178,19 @@ const resolvers = {
   Upload: GraphQLUpload,
 
   Query: {
+    PaidAdvertisements: async (_, args, context) => {
+      return [
+        "https://corptechsolutions.s3.amazonaws.com/Group+9481.png",
+        "https://corptechsolutions.s3.amazonaws.com/Group+9482.png",
+      ];
+    },
+    GetDashboardStatistics: async (_, args, context) => {
+      return {
+        shortTimeJobsCount: "44.5K",
+        fullTimeJobsCount: "66.8K",
+        partTimeJobsCount: "38.9K",
+      };
+    },
     GetProvinces: async (_, { country }, context) => {
       if (country.toLowerCase() !== "canada") {
         return []; // Return an empty array for non-Canada countries
@@ -1610,6 +1623,7 @@ const resolvers = {
           },
         });
 
+        console.log(userResult);
         let userLatitude = userResult.addresses[0].latitude;
         let userLongitude = userResult.addresses[0].longitude;
 
@@ -1636,8 +1650,11 @@ const resolvers = {
               userResult.candidateAddress[i].candidateAddressTypeId ===
               LocationPreference
             ) {
+              console.log("true");
               userLatitude = userResult.candidateAddress[i].latitude;
               userLongitude = userResult.candidateAddress[i].longitude;
+
+              console.log(userResult.candidateAddress[i].latitude);
             }
           }
         } else if (userResult.candidatePreference.isNearMyAddressDefault) {
@@ -1689,7 +1706,237 @@ const resolvers = {
         WHERE ST_DWithin(
           ST_MakePoint("Address".longitude, "Address".latitude)::geography,
           ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography,
-          50000
+          500000000
+        )
+        AND "Job"."statusId" != '5ac89c4d-7587-4e2d-8227-6df4e943fb18' -- Exclude specific status ID
+        ORDER BY ST_Distance(
+          ST_MakePoint("Address".longitude, "Address".latitude)::geography,
+          ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography
+        )
+        LIMIT ${take} OFFSET ${skip}`;
+
+        const result = await context.prisma.$queryRawUnsafe(query);
+
+        // Extract the job IDs, distance in meters, and distance in kilometers from the result
+        const jobsWithDistances = result.map((row) => ({
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          distance_meters: row.distance_meters,
+          distance_kilometers: row.distance_kilometers,
+        }));
+
+        // Fetch full job details using findMany
+        const jobs = await context.prisma.job.findMany({
+          where: {
+            id: {
+              in: jobsWithDistances.map((job) => job.id), // Filter jobs by the retrieved IDs
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            organization: true,
+            status: true,
+            address: true,
+            category: true,
+            bookmarks: true,
+            tags: true,
+            jobDocuments: {
+              include: {
+                document: true,
+              },
+            },
+            jobApplications: {
+              include: {
+                candidate: true,
+                status: true,
+              },
+            },
+            jobLevel: true,
+            jobType: true,
+            skills: true,
+          },
+        });
+
+        const jobIds = jobsWithDistances.map((job) => job.id);
+
+        const bookmarkedJobs = await context.prisma.bookmark.findMany({
+          where: {
+            userId,
+            jobId: {
+              in: jobIds,
+            },
+          },
+          select: {
+            jobId: true,
+          },
+        });
+
+        const bookmarkedJobIds = bookmarkedJobs.map(
+          (bookmark) => bookmark.jobId
+        );
+
+        const jobsWithFormattedDetails = jobsWithDistances.map(
+          (jobWithDistance) => {
+            const job = jobs.find((j) => j.id === jobWithDistance.id);
+            if (!job) {
+              return null;
+            }
+
+            const formattedDistance_meters =
+              Math.floor(jobWithDistance.distance_meters) + " m";
+            const formattedDistance_kilometers =
+              jobWithDistance.distance_kilometers.toFixed(1) + " km";
+
+            const distance =
+              jobWithDistance.distance_meters < 1000
+                ? formattedDistance_meters
+                : formattedDistance_kilometers;
+
+            return {
+              ...job,
+              distance,
+              distance_meters: formattedDistance_meters,
+              distance_kilometers: formattedDistance_kilometers,
+              isBookmarked: bookmarkedJobIds.includes(job.id),
+              startDate: job.startDate?.toISOString() || null,
+              endDate: job.endDate?.toISOString() || null,
+              createdAt: job.createdAt?.toISOString() || null,
+              updatedAt: job.updatedAt?.toISOString() || null,
+              appliedAt: job.appliedAt?.toISOString() || null,
+            };
+          }
+        );
+
+        return jobsWithFormattedDetails;
+      } catch (error) {
+        console.error(error);
+        throw new Error("An error occurred while fetching nearby jobs.");
+      }
+    },
+
+    AllJobsByDistance: async (_, args, context) => {
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+
+      const { skip, take } = args;
+
+      try {
+        const userResult = await context.prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            addresses: {
+              where: { isCurrent: true },
+            },
+            candidateAddress: true,
+            candidatePreference: true,
+          },
+        });
+
+        console.log(userResult);
+        let userLatitude = userResult.addresses[0].latitude;
+        let userLongitude = userResult.addresses[0].longitude;
+
+        console.log(userLatitude);
+        console.log(userLongitude);
+        let LocationPreference = null;
+        let isSearchByCity = false;
+        let city = null;
+
+        // 2e42c035-a10f-463f-8ca5-a335ed1e504b       My Current Location
+        // 7d49edb5-ea56-42f4-a21a-c182c851afdf       Near My Address
+        // ecd2af27-3783-42ff-93b5-81568d205ae6       Work In a Particular City
+
+        if (userResult.length === 0) {
+          throw new Error("User not found.");
+        }
+
+        if (userResult.candidatePreference.isCurrentLocationDefault) {
+          console.log("Current Location");
+          LocationPreference = "2e42c035-a10f-463f-8ca5-a335ed1e504b";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              console.log("true");
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+
+              console.log(userResult.candidateAddress[i].latitude);
+            }
+          }
+        } else if (userResult.candidatePreference.isNearMyAddressDefault) {
+          console.log("Near My Address");
+          LocationPreference = "7d49edb5-ea56-42f4-a21a-c182c851afdf";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              userLatitude = userResult.candidateAddress[i].latitude;
+              userLongitude = userResult.candidateAddress[i].longitude;
+            }
+          }
+        } else if (userResult.candidatePreference.isWorkInCityDefault) {
+          console.log("Work In a Particular City");
+          LocationPreference = "ecd2af27-3783-42ff-93b5-81568d205ae6";
+
+          for (let i = 0; i < userResult.candidateAddress.length; ++i) {
+            if (
+              userResult.candidateAddress[i].candidateAddressTypeId ===
+              LocationPreference
+            ) {
+              isSearchByCity = true;
+              city = userResult.candidateAddress[i].city;
+            }
+          }
+        } else {
+          console.log("User Preference is not set for user: ", userId);
+        }
+
+        console.log("---------------------------------------");
+        console.log(userLatitude);
+        console.log(userLongitude);
+
+        const query = `
+        SELECT "Job".id, "Job".title, "Job".description, "Address".latitude, "Address".longitude,
+        ST_Distance(
+          ST_MakePoint("Address".longitude, "Address".latitude)::geography,
+          ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography
+        ) AS distance_meters,
+        ST_Distance(
+          ST_MakePoint("Address".longitude, "Address".latitude)::geography,
+          ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography
+        ) / 1000 AS distance_kilometers
+        FROM "Job"
+        INNER JOIN "Address" ON "Job".id = "Address"."jobId"
+        WHERE ST_DWithin(
+          ST_MakePoint("Address".longitude, "Address".latitude)::geography,
+          ST_MakePoint(${userLongitude}::float, ${userLatitude}::float)::geography,
+          5000000000
         )
         AND "Job"."statusId" != '5ac89c4d-7587-4e2d-8227-6df4e943fb18' -- Exclude specific status ID
         ORDER BY ST_Distance(
@@ -3708,7 +3955,7 @@ const resolvers = {
 
         const returnVal = await upload_file();
         return returnVal;
-      }
+      } // end file uploading if
 
       // return null;
     },
