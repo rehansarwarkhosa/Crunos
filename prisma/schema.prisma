@@ -116,6 +116,8 @@ model Job {
   updatedAt         DateTime?        @updatedAt
   categoryId        String           @db.Uuid
   numberOfSeats     Int?
+  experience        String?
+  qualification     String?
   jobLevelId        String?          @db.Uuid
   jobTypeId         String?          @db.Uuid
   salaryAmount      Float?
