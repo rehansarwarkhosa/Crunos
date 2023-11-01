@@ -1364,6 +1364,13 @@ const resolvers = {
             id: userId,
           },
           include: {
+            businessContactInfos:{
+include:{
+  email: true,
+  phone: true,
+  address: true
+}
+            },
             candidateDocuments: {
               include: {
                 candidateDocumentType: true,
@@ -3490,6 +3497,1414 @@ const resolvers = {
   },
 
   Mutation: {
+    //akram
+    AddBusinessProfile: async (_, args, context) => {
+      let {
+        companyLogo,
+        companyName,
+        email,
+        phone,
+        officeAddress,
+        streetLine1,
+        streetLine2,
+        country,
+        province,
+        city,
+        zipPostalCode,
+        location,
+      } = args;
+
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+      try {
+        // Check if the user exists
+        const existingUser = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!existingUser) {
+          return { success: false, raw: { message: "User not found!" } };
+        }
+
+        if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
+          console.log("User is not a company user!", existingUser.roleId);
+          
+          return {
+            success: false,
+            raw: { message: "User is not a company user!" },
+          };
+        }
+
+
+
+        let isEmailUnique =
+        await context.prisma.email.findMany({
+          where: {
+            email: email,
+          },
+        });
+
+      if (isEmailUnique.length > 0) {
+        console.log("Email already exists! (Unique constraint failed)");
+
+        return {
+          success: false,
+          raw: { message: "Email already exists! (Unique constraint failed)" },
+        };
+      } 
+
+
+
+
+
+
+
+      let isPhoneUnique =
+      await context.prisma.phone.findMany({
+        where: {
+          phone: phone,
+        },
+      });
+
+    if (isPhoneUnique.length > 0) {
+      console.log("Phone already exists! (Unique constraint failed)");
+
+      return {
+        success: false,
+        raw: { message: "Phone already exists! (Unique constraint failed)" },
+      };
+    } 
+
+
+
+
+
+        let file_path_after_uploading = null;
+        let filename_after_uploading = null;
+        let fileSize = null;
+        let fileType = null;
+        let extension = null;
+        let fileSizeInBytes = null;
+        let fileURL = null;
+        let fileSizeInKB = null;
+        let fileSizeInMB = null;
+        let ExtensionList = [
+          "jpg",
+          "jpeg",
+          "png",
+          "gif",
+          "tif",
+          "webp",
+          "bmp",
+          "svg",
+
+        ];
+
+        let is_valid_extension;
+
+        //============================= resume =============================================
+
+        console.log("Before file upload");
+
+        // Pipe the GraphQL upload stream directly to a temporary file
+
+        if (companyLogo) {
+          const { createReadStream, filename, mimetype, encoding } =
+            await companyLogo;
+          fileType = mimetype;
+
+          const stream = createReadStream();
+
+          const tempFilePath = "./tempfile"; // Adjust the path and filename as needed
+          const writeStream = fs.createWriteStream(tempFilePath);
+          stream.pipe(writeStream);
+
+          const MAX_FILE_SIZE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB in bytes
+          //nadeem omer
+          writeStream.on("finish", () => {
+            const stats = fs.statSync(tempFilePath);
+            fileSizeInBytes = stats.size;
+
+            // Now you can use the fileSizeInBytes as needed
+            // e.g., store it in a database or do further processing
+            // ...
+
+            // Check if the file size exceeds the maximum allowed size
+
+            // Calculate file size in KB and MB
+            if (fileSizeInBytes >= 1024 * 1024) {
+              fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+              fileSizeInKB = fileSizeInBytes / 1024;
+            } else if (fileSizeInBytes >= 1024) {
+              fileSizeInKB = fileSizeInBytes / 1024;
+            }
+
+            if (fileSizeInMB) {
+              fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+            } else if (fileSizeInKB) {
+              fileSize = `${fileSizeInKB.toFixed(2)} KB`;
+            } else {
+              fileSize = `${fileSizeInBytes} Byte${
+                fileSizeInBytes !== 1 ? "s" : ""
+              }`;
+            }
+
+            console.log("File size in bytes:", fileSizeInBytes);
+            console.log("Size in KB:", fileSizeInKB);
+            console.log("Size in MB:", fileSizeInMB);
+            console.log("Final calculated file size:", fileSize);
+
+            if (fileSizeInBytes > MAX_FILE_SIZE_BYTES) {
+              // Cleanup the temporary file
+              fs.unlinkSync(tempFilePath);
+
+              return {
+                success: false,
+                message: "File size exceeds the maximum allowed size (1.5 MB).",
+              };
+            }
+          });
+
+          fileSize = setTimeout(function () {
+            if (fileSize) {
+              if (fileSizeInBytes >= 1000000) {
+                return { success: false, message: "Very long size!" };
+              }
+            }
+          }, 100);
+
+          // Convert the Readable stream to a Node.js stream
+          const readableStream = new Readable();
+          readableStream._read = () => {}; // Ensure the stream is in flowing mode
+
+          // Pipe the GraphQL upload stream directly to the readableStream
+          stream.on("data", (chunk) => {
+            // fileSizeInBytes += chunk.length; // Increment file size
+            readableStream.push(chunk);
+          });
+          stream.on("end", () => {
+            readableStream.push(null); // Signal the end of the stream
+          });
+
+
+          console.log("=============================");
+
+          console.log(fileSizeInBytes);
+
+          console.log("=============================");
+
+          console.log("Size in Byte: ", fileSizeInBytes);
+          console.log("Size in KB: ", fileSizeInKB);
+          console.log("Size in MB: ", fileSizeInMB);
+
+          console.log("Final caluclated file size: ", fileSize);
+
+          let arr = filename.split(".");
+
+          let name = arr[0];
+          let ext = arr.pop();
+          extension = ext;
+          if (ExtensionList.includes(ext.toLowerCase())) {
+            is_valid_extension = true;
+          } else {
+            is_valid_extension = false;
+          }
+
+          if (!is_valid_extension) {
+            return { success: false, message: "Invalid file extension!" };
+            // throw new ValidationError("Invalid file extension!");
+          }
+
+          let url = path.join(`${name}-${Date.now()}.${ext}`);
+
+          filename_after_uploading = url;
+          AWS.config.update({
+            accessKeyId: "AKIAUUWI6OUAROXDTLIW",
+            secretAccessKey: "Ybsrmc9rxS/jcvmcakNYyw1hBRXSaSijIDx7xRJB",
+            //   region: "YOUR_REGION",
+          });
+          //akram
+          const s3 = new AWS.S3();
+          const bucketName = "crunos-internal-bucket/test";
+
+          async function uploadFile() {
+            const uploadParams = {
+              Bucket: bucketName,
+              Key: filename_after_uploading,
+              Body: readableStream,
+            };
+
+            try {
+              const data = await s3.upload(uploadParams).promise();
+              // console.log("File uploaded successfully. ETag:", data.ETag);
+              // console.log(data);
+              return data;
+            } catch (error) {
+              console.error("Error uploading file:", error);
+              throw error;
+            }
+          }
+
+          async function upload_file() {
+            return new Promise(async (resolve) => {
+              //-------------------------------------
+              uploadFile()
+                .then(async (data) => {
+                  console.log("File uploaded successfully:", data);
+                  file_path_after_uploading = data.Location;
+
+                  // console.log(file_path_after_uploading);
+                  // console.log(filename_after_uploading);
+
+                  // Assuming you have saved the uploaded file URL and filename
+                  fileURL = file_path_after_uploading; // Replace with your file URL
+                  console.log("file URL: ", file_path_after_uploading);
+                  const fileName = filename_after_uploading; // Replace with your filename
+
+               
+                  resolve({ success: true, raw: "" });
+                  return { success: true, raw: "" };
+
+                  // return { success: true, raw: "" };
+                })
+                .catch((error) => {
+                  console.error("Error uploading file:", error);
+                  resolve({ success: false, raw: "" });
+                  return { success: false, raw: "" };
+                });
+
+              //-------------------------------------
+            });
+          }
+
+          const returnVal = await upload_file();
+          // return returnVal;
+        } // end file uploading if
+
+        console.log("After file upload");
+        //============================= resume =============================================
+
+        companyLogo = file_path_after_uploading;
+        console.log("Company Logo URL: ", companyLogo);
+
+        if (companyLogo && companyName) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyName: companyName,
+              companyLogo: companyLogo,
+            },
+          });
+        } else if (companyLogo) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyLogo: companyLogo,
+            },
+          });
+        } else if (companyName) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyName: companyName,
+            },
+          });
+        } else {
+          console.log("Company Logo and Company name not exists!");
+        }
+
+        let userEmail = null;
+
+        let isEmailAlreadyExistsForThisUser =
+          await context.prisma.email.findMany({
+            where: {
+              userId: userId,
+            },
+          });
+
+        if (!isEmailAlreadyExistsForThisUser.length) {
+          console.log("Email not already exists so this one is primary!");
+          userEmail = await context.prisma.email.create({
+            data: {
+              // id: "fdb067fb-1022-40ed-8eee-765da6fb4d38",
+              email: email,
+              isPrimary: true,
+              userId: userId,
+              // description: "Personal Email",
+              // department: "IT",
+            },
+          });
+        } else {
+          console.log("Email already exists so this one is not primary!");
+          userEmail = await context.prisma.email.create({
+            data: {
+              // id: "fdb067fb-1022-40ed-8eee-765da6fb4d38",
+              email: email,
+              isPrimary: false,
+              userId: userId,
+              // description: "Personal Email",
+              // department: "IT",
+            },
+          });
+        }
+
+        let userPhone = null;
+
+        let isPhoneAlreadyExistsForThisUser =
+          await context.prisma.phone.findMany({
+            where: {
+              userId: userId,
+            },
+          });
+
+        if (!isPhoneAlreadyExistsForThisUser.length) {
+          console.log("Phone not already exists so this one is primary!");
+          userPhone = await context.prisma.phone.create({
+            data: {
+              // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+              phone: phone,
+              isPrimary: true,
+              userId: userId,
+              // description: "Personal Phone",
+              // department: "IT",
+            },
+          });
+        } else {
+          console.log("Phone already exists so this one is not primary!");
+          userPhone = await context.prisma.phone.create({
+            data: {
+              // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+              phone: phone,
+              isPrimary: false,
+              userId: userId,
+              // description: "Personal Phone",
+              // department: "IT",
+            },
+          });
+        }
+
+
+        let addressObj = {};
+
+        function addToAddressObject(key, value) {
+          if (value !== null && value !== "") {
+            addressObj[key] = value;
+          }
+        }
+
+        addToAddressObject("officeAddress", officeAddress);
+        addToAddressObject("streetLine1", streetLine1);
+        addToAddressObject("streetLine2", streetLine2);
+        addToAddressObject("country", country);
+        addToAddressObject("province", province);
+        addToAddressObject("city", city);
+        addToAddressObject("zipPostalCode", zipPostalCode);
+        addToAddressObject("location", location);
+
+        console.log(addressObj);
+
+        let userAddress = null;
+
+        if (Object.keys(addressObj).length > 0) {
+          console.log("addressObj is not empty and contains values.");
+
+          //=============================
+
+          let isAddressAlreadyExistsForThisUser =
+            await context.prisma.address.findMany({
+              where: {
+                userId: userId,
+              },
+            });
+
+          if (!isAddressAlreadyExistsForThisUser.length) {
+            console.log("Address not already exists so this one is primary!");
+
+            userAddress = await context.prisma.address.create({
+              data: {
+                // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+                officeAddress,
+                streetLine1,
+                streetLine2,
+                country,
+                province,
+                city,
+                zipPostalCode,
+                location,
+                userId,
+                isCurrent: true,
+                // description: "Personal Phone",
+                // department: "IT",
+              },
+            });
+          } else {
+            console.log("Address already exists so this one is not primary!");
+            userAddress = await context.prisma.address.create({
+              data: {
+                // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+                officeAddress,
+                streetLine1,
+                streetLine2,
+                country,
+                province,
+                city,
+                zipPostalCode,
+                location,
+                userId,
+                isCurrent: false,
+                // description: "Personal Phone",
+                // department: "IT",
+              },
+            });
+          }
+
+          //============================
+        } else {
+          console.log("addressObj is empty.");
+        }
+
+        let businessContactInfoObj = {};
+
+        function addToBusinessContactInfoObjObject(key, value) {
+          if (value !== null && value !== "") {
+            businessContactInfoObj[key] = value;
+          }
+        }
+
+        if (userEmail) {
+          addToBusinessContactInfoObjObject("emailId", userEmail.id);
+        }
+
+        if (userPhone) {
+          addToBusinessContactInfoObjObject("phoneId", userPhone.id);
+        }
+
+        if (userAddress) {
+          addToBusinessContactInfoObjObject("addressId", userAddress.id);
+        }
+
+        console.log(businessContactInfoObj);
+
+        let userBusinessContactInfo = null;
+
+        if (Object.keys(businessContactInfoObj).length > 0) {
+          businessContactInfoObj.userId = userId;
+          console.log(
+            "businessContactInfoObj is not empty and contains values."
+          );
+
+          //=============================
+
+          let isuserBusinessContactInfoAlreadyExistsForThisUser =
+            await context.prisma.BusinessContactInfo.findMany({
+              where: {
+                userId: userId,
+              },
+            });
+
+          if (!isuserBusinessContactInfoAlreadyExistsForThisUser.length) {
+            console.log(
+              "businessContactInfoObj not already exists so this one is primary!"
+            );
+
+            businessContactInfoObj.isCurrent = true;
+            userBusinessContactInfo =
+              await context.prisma.BusinessContactInfo.create({
+                data: businessContactInfoObj,
+              });
+          } else {
+            console.log(
+              "businessContactInfoObj already exists so this one is not primary!"
+            );
+            businessContactInfoObj.isCurrent = false;
+            userBusinessContactInfo =
+              await context.prisma.BusinessContactInfo.create({
+                data: businessContactInfoObj,
+              });
+          }
+
+          //============================
+        } else {
+          console.log("businessContactInfoObj is empty.");
+        }
+
+        return { success: true, raw: userBusinessContactInfo };
+      } catch (error) {
+        console.log(error);
+        return { success: false, raw: { message: error.message } };
+      }
+    },
+
+    UpdateBusinessProfile: async (_, args, context) => {
+      let {
+        id,
+        companyLogo,
+        companyName,
+        email,
+        phone,
+        officeAddress,
+        streetLine1,
+        streetLine2,
+        country,
+        province,
+        city,
+        zipPostalCode,
+        location,
+      } = args;
+
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+      try {
+        // Check if the user exists
+        const existingUser = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!existingUser) {
+          return { success: false, raw: { message: "User not found!" } };
+        }
+
+        if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
+          console.log("User is not a company user!", existingUser.roleId);
+          
+          return {
+            success: false,
+            raw: { message: "User is not a company user!" },
+          };
+        }
+
+
+
+        let existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findUnique({
+          where: { id },
+        });
+    
+        if (!existingBusinessContactInfo) {
+          return { success: false, raw: { message: 'BusinessContactInfo not found!' } };
+        }
+
+
+
+        if(existingBusinessContactInfo.emailId){
+           // Delete the record
+           await context.prisma.email.delete({
+            where: { id: existingBusinessContactInfo.emailId},
+          });
+        }
+
+    
+
+
+        let isEmailUnique =
+        await context.prisma.email.findMany({
+          where: {
+            email: email,
+          },
+        });
+
+      if (isEmailUnique.length > 0) {
+        console.log("Email already exists! (Unique constraint failed)");
+
+        return {
+          success: false,
+          raw: { message: "Email already exists! (Unique constraint failed)" },
+        };
+      } 
+
+
+
+
+
+      if(existingBusinessContactInfo.phoneId){
+        // Delete the record
+        await context.prisma.phone.delete({
+         where: { id: existingBusinessContactInfo.phoneId},
+       });
+     }
+
+
+
+      let isPhoneUnique =
+      await context.prisma.phone.findMany({
+        where: {
+          phone: phone,
+        },
+      });
+
+    if (isPhoneUnique.length > 0) {
+      console.log("Phone already exists! (Unique constraint failed)");
+
+      return {
+        success: false,
+        raw: { message: "Phone already exists! (Unique constraint failed)" },
+      };
+    } 
+
+
+
+
+
+        let file_path_after_uploading = null;
+        let filename_after_uploading = null;
+        let fileSize = null;
+        let fileType = null;
+        let extension = null;
+        let fileSizeInBytes = null;
+        let fileURL = null;
+        let fileSizeInKB = null;
+        let fileSizeInMB = null;
+        let ExtensionList = [
+          "jpg",
+          "jpeg",
+          "png",
+          "gif",
+          "tif",
+          "webp",
+          "bmp",
+          "svg",
+
+        ];
+
+        let is_valid_extension;
+
+        //============================= resume =============================================
+
+        console.log("Before file upload");
+
+        // Pipe the GraphQL upload stream directly to a temporary file
+
+        if (companyLogo) {
+          const { createReadStream, filename, mimetype, encoding } =
+            await companyLogo;
+          fileType = mimetype;
+
+          const stream = createReadStream();
+
+          const tempFilePath = "./tempfile"; // Adjust the path and filename as needed
+          const writeStream = fs.createWriteStream(tempFilePath);
+          stream.pipe(writeStream);
+
+          const MAX_FILE_SIZE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB in bytes
+          //nadeem omer
+          writeStream.on("finish", () => {
+            const stats = fs.statSync(tempFilePath);
+            fileSizeInBytes = stats.size;
+
+            // Now you can use the fileSizeInBytes as needed
+            // e.g., store it in a database or do further processing
+            // ...
+
+            // Check if the file size exceeds the maximum allowed size
+
+            // Calculate file size in KB and MB
+            if (fileSizeInBytes >= 1024 * 1024) {
+              fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+              fileSizeInKB = fileSizeInBytes / 1024;
+            } else if (fileSizeInBytes >= 1024) {
+              fileSizeInKB = fileSizeInBytes / 1024;
+            }
+
+            if (fileSizeInMB) {
+              fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+            } else if (fileSizeInKB) {
+              fileSize = `${fileSizeInKB.toFixed(2)} KB`;
+            } else {
+              fileSize = `${fileSizeInBytes} Byte${
+                fileSizeInBytes !== 1 ? "s" : ""
+              }`;
+            }
+
+            console.log("File size in bytes:", fileSizeInBytes);
+            console.log("Size in KB:", fileSizeInKB);
+            console.log("Size in MB:", fileSizeInMB);
+            console.log("Final calculated file size:", fileSize);
+
+            if (fileSizeInBytes > MAX_FILE_SIZE_BYTES) {
+              // Cleanup the temporary file
+              fs.unlinkSync(tempFilePath);
+
+              return {
+                success: false,
+                message: "File size exceeds the maximum allowed size (1.5 MB).",
+              };
+            }
+          });
+
+          fileSize = setTimeout(function () {
+            if (fileSize) {
+              if (fileSizeInBytes >= 1000000) {
+                return { success: false, message: "Very long size!" };
+              }
+            }
+          }, 100);
+
+          // Convert the Readable stream to a Node.js stream
+          const readableStream = new Readable();
+          readableStream._read = () => {}; // Ensure the stream is in flowing mode
+
+          // Pipe the GraphQL upload stream directly to the readableStream
+          stream.on("data", (chunk) => {
+            // fileSizeInBytes += chunk.length; // Increment file size
+            readableStream.push(chunk);
+          });
+          stream.on("end", () => {
+            readableStream.push(null); // Signal the end of the stream
+          });
+
+
+          console.log("=============================");
+
+          console.log(fileSizeInBytes);
+
+          console.log("=============================");
+
+          console.log("Size in Byte: ", fileSizeInBytes);
+          console.log("Size in KB: ", fileSizeInKB);
+          console.log("Size in MB: ", fileSizeInMB);
+
+          console.log("Final caluclated file size: ", fileSize);
+
+          let arr = filename.split(".");
+
+          let name = arr[0];
+          let ext = arr.pop();
+          extension = ext;
+          if (ExtensionList.includes(ext.toLowerCase())) {
+            is_valid_extension = true;
+          } else {
+            is_valid_extension = false;
+          }
+
+          if (!is_valid_extension) {
+            return { success: false, message: "Invalid file extension!" };
+            // throw new ValidationError("Invalid file extension!");
+          }
+
+          let url = path.join(`${name}-${Date.now()}.${ext}`);
+
+          filename_after_uploading = url;
+          AWS.config.update({
+            accessKeyId: "AKIAUUWI6OUAROXDTLIW",
+            secretAccessKey: "Ybsrmc9rxS/jcvmcakNYyw1hBRXSaSijIDx7xRJB",
+            //   region: "YOUR_REGION",
+          });
+          //akram
+          const s3 = new AWS.S3();
+          const bucketName = "crunos-internal-bucket/test";
+
+          async function uploadFile() {
+            const uploadParams = {
+              Bucket: bucketName,
+              Key: filename_after_uploading,
+              Body: readableStream,
+            };
+
+            try {
+              const data = await s3.upload(uploadParams).promise();
+              // console.log("File uploaded successfully. ETag:", data.ETag);
+              // console.log(data);
+              return data;
+            } catch (error) {
+              console.error("Error uploading file:", error);
+              throw error;
+            }
+          }
+
+          async function upload_file() {
+            return new Promise(async (resolve) => {
+              //-------------------------------------
+              uploadFile()
+                .then(async (data) => {
+                  console.log("File uploaded successfully:", data);
+                  file_path_after_uploading = data.Location;
+
+                  // console.log(file_path_after_uploading);
+                  // console.log(filename_after_uploading);
+
+                  // Assuming you have saved the uploaded file URL and filename
+                  fileURL = file_path_after_uploading; // Replace with your file URL
+                  console.log("file URL: ", file_path_after_uploading);
+                  const fileName = filename_after_uploading; // Replace with your filename
+
+               
+                  resolve({ success: true, raw: "" });
+                  return { success: true, raw: "" };
+
+                  // return { success: true, raw: "" };
+                })
+                .catch((error) => {
+                  console.error("Error uploading file:", error);
+                  resolve({ success: false, raw: "" });
+                  return { success: false, raw: "" };
+                });
+
+              //-------------------------------------
+            });
+          }
+
+          const returnVal = await upload_file();
+          // return returnVal;
+        } // end file uploading if
+
+        console.log("After file upload");
+        //============================= resume =============================================
+
+        companyLogo = file_path_after_uploading;
+        console.log("Company Logo URL: ", companyLogo);
+
+        if (companyLogo && companyName) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyName: companyName,
+              companyLogo: companyLogo,
+            },
+          });
+        } else if (companyLogo) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyLogo: companyLogo,
+            },
+          });
+        } else if (companyName) {
+          // Update the existing record
+          await context.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              companyName: companyName,
+            },
+          });
+        } else {
+          console.log("Company Logo and Company name not exists!");
+        }
+
+        let userEmail = null;
+
+        let isEmailAlreadyExistsForThisUser =
+          await context.prisma.email.findMany({
+            where: {
+              userId: userId,
+            },
+          });
+
+        if (!isEmailAlreadyExistsForThisUser.length) {
+          console.log("Email not already exists so this one is primary!");
+          userEmail = await context.prisma.email.create({
+            data: {
+              // id: "fdb067fb-1022-40ed-8eee-765da6fb4d38",
+              email: email,
+              isPrimary: true,
+              userId: userId,
+              // description: "Personal Email",
+              // department: "IT",
+            },
+          });
+        } else {
+          console.log("Email already exists so this one is not primary!");
+          userEmail = await context.prisma.email.create({
+            data: {
+              // id: "fdb067fb-1022-40ed-8eee-765da6fb4d38",
+              email: email,
+              isPrimary: false,
+              userId: userId,
+              // description: "Personal Email",
+              // department: "IT",
+            },
+          });
+        }
+
+        let userPhone = null;
+
+        let isPhoneAlreadyExistsForThisUser =
+          await context.prisma.phone.findMany({
+            where: {
+              userId: userId,
+            },
+          });
+
+        if (!isPhoneAlreadyExistsForThisUser.length) {
+          console.log("Phone not already exists so this one is primary!");
+          userPhone = await context.prisma.phone.create({
+            data: {
+              // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+              phone: phone,
+              isPrimary: true,
+              userId: userId,
+              // description: "Personal Phone",
+              // department: "IT",
+            },
+          });
+        } else {
+          console.log("Phone already exists so this one is not primary!");
+          userPhone = await context.prisma.phone.create({
+            data: {
+              // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+              phone: phone,
+              isPrimary: false,
+              userId: userId,
+              // description: "Personal Phone",
+              // department: "IT",
+            },
+          });
+        }
+
+
+
+
+        if(existingBusinessContactInfo.addressId){
+          // Delete the record
+          await context.prisma.address.delete({
+           where: { id: existingBusinessContactInfo.addressId},
+         });
+       }
+
+
+
+
+        let addressObj = {};
+
+        function addToAddressObject(key, value) {
+          if (value !== null && value !== "") {
+            addressObj[key] = value;
+          }
+        }
+
+        addToAddressObject("officeAddress", officeAddress);
+        addToAddressObject("streetLine1", streetLine1);
+        addToAddressObject("streetLine2", streetLine2);
+        addToAddressObject("country", country);
+        addToAddressObject("province", province);
+        addToAddressObject("city", city);
+        addToAddressObject("zipPostalCode", zipPostalCode);
+        addToAddressObject("location", location);
+
+        console.log(addressObj);
+
+        let userAddress = null;
+
+        if (Object.keys(addressObj).length > 0) {
+          console.log("addressObj is not empty and contains values.");
+
+          //=============================
+
+          let isAddressAlreadyExistsForThisUser =
+            await context.prisma.address.findMany({
+              where: {
+                userId: userId,
+              },
+            });
+
+          if (!isAddressAlreadyExistsForThisUser.length) {
+            console.log("Address not already exists so this one is primary!");
+
+            userAddress = await context.prisma.address.create({
+              data: {
+                // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+                officeAddress,
+                streetLine1,
+                streetLine2,
+                country,
+                province,
+                city,
+                zipPostalCode,
+                location,
+                userId,
+                isCurrent: true,
+                // description: "Personal Phone",
+                // department: "IT",
+              },
+            });
+          } else {
+            console.log("Address already exists so this one is not primary!");
+            userAddress = await context.prisma.address.create({
+              data: {
+                // id: "8cadb22b-28a7-4049-8b7f-07bc14e303e9",
+                officeAddress,
+                streetLine1,
+                streetLine2,
+                country,
+                province,
+                city,
+                zipPostalCode,
+                location,
+                userId,
+                isCurrent: false,
+                // description: "Personal Phone",
+                // department: "IT",
+              },
+            });
+          }
+
+          //============================
+        } else {
+          console.log("addressObj is empty.");
+        }
+
+        let businessContactInfoObj = {};
+
+        function addToBusinessContactInfoObjObject(key, value) {
+          if (value !== null && value !== "") {
+            businessContactInfoObj[key] = value;
+          }
+        }
+
+        if (userEmail) {
+          addToBusinessContactInfoObjObject("emailId", userEmail.id);
+        }
+
+        if (userPhone) {
+          addToBusinessContactInfoObjObject("phoneId", userPhone.id);
+        }
+
+        if (userAddress) {
+          addToBusinessContactInfoObjObject("addressId", userAddress.id);
+        }
+
+        console.log(businessContactInfoObj);
+
+        let userBusinessContactInfo = null;
+
+        if (Object.keys(businessContactInfoObj).length > 0) {
+          businessContactInfoObj.userId = userId;
+          console.log(
+            "businessContactInfoObj is not empty and contains values."
+          );
+
+          //=============================
+
+          let isuserBusinessContactInfoAlreadyExistsForThisUser =
+            await context.prisma.BusinessContactInfo.findMany({
+              where: {
+                userId: userId,
+              },
+            });
+
+          if (isuserBusinessContactInfoAlreadyExistsForThisUser.length < 2) {
+            console.log(
+              "businessContactInfoObj not already exists so this one is primary!"
+            );
+
+            businessContactInfoObj.isCurrent = true;
+            userBusinessContactInfo = await context.prisma.BusinessContactInfo.update({
+              where: { id: existingBusinessContactInfo.id },
+              data: businessContactInfoObj,
+            });
+
+
+
+            // existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findMany({
+            //   where: { userId: userId },
+            // });
+
+
+        
+            if (!existingBusinessContactInfo) {
+              return { success: false, raw: { message: 'BusinessContactInfo not found!' } };
+            }
+
+
+          } else {
+            console.log(
+              "businessContactInfoObj already exists so this one is not primary!"
+            );
+            // businessContactInfoObj.isCurrent = false;
+            // userBusinessContactInfo =
+            //   await context.prisma.BusinessContactInfo.create({
+            //     data: businessContactInfoObj,
+            //   });
+
+              userBusinessContactInfo = await context.prisma.BusinessContactInfo.update({
+                where: { id: existingBusinessContactInfo.id },
+                data: businessContactInfoObj,
+              });
+          }
+
+          //============================
+        } else {
+          console.log("businessContactInfoObj is empty.");
+        }
+
+        return { success: true, raw: userBusinessContactInfo };
+      } catch (error) {
+        console.log(error);
+        return { success: false, raw: { message: error.message } };
+      }
+    },
+
+
+    DeleteBusinessProfile: async (_, args, context) => {
+      let {
+        id,
+      } = args;
+
+      // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
+
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+      try {
+        // Check if the user exists
+        const existingUser = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!existingUser) {
+          return { success: false, raw: { message: "User not found!" } };
+        }
+
+        if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
+          console.log("User is not a company user!", existingUser.roleId);
+          
+          return {
+            success: false,
+            raw: { message: "User is not a company user!" },
+          };
+        }
+
+
+
+
+
+        // Check if the BusinessContactInfo record exists and belongs to the user
+    const existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findUnique({
+      where: { id },
+      include: {
+        email: true,
+        phone: true,
+        address: true, // Include the associated Address record
+      },
+    });
+
+    if (!existingBusinessContactInfo) {
+      return { success: false, raw: { message: "BusinessContactInfo not found" } };
+    }
+
+    if (existingBusinessContactInfo.userId !== userId) {
+      return { success: false, raw: { message: "BusinessContactInfo does not belong to the user" } };
+    }
+
+
+
+
+  // Delete associated Email record
+  if (existingBusinessContactInfo.email) {
+    await context.prisma.email.delete({
+      where: { id: existingBusinessContactInfo.email.id },
+    });
+  }
+
+
+      // Delete associated Phone record
+      if (existingBusinessContactInfo.phone) {
+        await context.prisma.phone.delete({
+          where: { id: existingBusinessContactInfo.phone.id },
+        });
+      }
+
+
+          // Delete associated Address record
+    if (existingBusinessContactInfo.address) {
+      await context.prisma.address.delete({
+        where: { id: existingBusinessContactInfo.address.id },
+      });
+    }
+
+
+    // Use Prisma to delete the BusinessContactInfo
+    await context.prisma.BusinessContactInfo.delete({
+      where: { id },
+    });
+
+
+
+
+
+
+        // Check the remaining BusinessContactInfo records for the user
+        const remainingBusinessContactInfo = await context.prisma.BusinessContactInfo.findMany({
+          where: { userId: userId },
+        });
+
+
+
+    if (remainingBusinessContactInfo.length === 1) {
+      // If only one record is left, set it as isCurrent: true
+      await context.prisma.BusinessContactInfo.update({
+        where: { id: remainingBusinessContactInfo[0].id },
+        data: { isCurrent: true },
+      });
+    } else if (remainingBusinessContactInfo.length > 1) {
+      // Sort the remaining records by createdAt in descending order
+
+      if(existingBusinessContactInfo.isCurrent === true){
+
+        remainingBusinessContactInfo.sort((a, b) => b.createdAt - a.createdAt);
+
+        // Update the latest one as isCurrent: true
+        await context.prisma.BusinessContactInfo.update({
+          where: { id: remainingBusinessContactInfo[0].id },
+          data: { isCurrent: true },
+        });
+      }
+
+
+
+    }
+
+
+
+
+    return { success: true, raw: { message: "BusinessContactInfo and associated records deleted successfully" } };
+       
+
+      } catch (error) {
+        console.log(error);
+        return { success: false, raw: { message: error.message } };
+      }
+    },
+
+    SetPrimaryBusinessProfile: async (_, args, context) => {
+
+      let id = args.id;
+      console.log("----------------------------------------------");
+      let userId = null;
+
+      userId = await validateCognitoToken(context.token);
+      try {
+        if (userId) {
+          console.log("Token is valid. User ID:", userId);
+        } else {
+          console.log("Token is invalid or expired.");
+          throw new Error("Invalid token!");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+        throw new Error("Invalid token!", error);
+      }
+      console.log("----------------------------------------------");
+      try {
+        // Check if the user exists
+        const existingUser = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!existingUser) {
+          return { success: false, raw: { message: "User not found!" } };
+        }
+
+        if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
+          console.log("User is not a company user!", existingUser.roleId);
+          
+          return {
+            success: false,
+            raw: { message: "User is not a company user!" },
+          };
+        }
+
+
+
+        const userBusinessContactInfos = await context.prisma.BusinessContactInfo.findMany({
+          where: { userId: userId },
+        });
+        
+        const selectedBusinessContactInfo = userBusinessContactInfos.find(info => info.id === id);
+
+
+
+        if (!selectedBusinessContactInfo) {
+          return { success: false, raw: { message: "BusinessContactInfo not found or does not belong to the user" } };
+        }
+
+
+
+
+
+            // Set all BusinessContactInfo records of the user as isCurrent: false
+    await context.prisma.BusinessContactInfo.updateMany({
+      where: { userId: userId },
+      data: { isCurrent: false },
+    });
+
+
+
+    await context.prisma.BusinessContactInfo.update({
+      where: { id },
+      data: { isCurrent: true },
+    });
+
+    return { success: true, raw: { message: "BusinessContactInfo updated successfully" }};
+
+      } catch (error) {
+        console.error(error);
+        return { success: false, raw: { message: error.message } };
+      }
+
+    },
+    
+
     DeleteCandidateDocument: async (_, { id }, context) => {
       console.log("----------------------------------------------");
       let userId = null;
@@ -3957,6 +5372,8 @@ const resolvers = {
         return returnVal;
       } // end file uploading if
 
+      console.log("After file upload");
+      //============================= resume =============================================
       // return null;
     },
     UpdateMyWorkInformation: async (_, args, context) => {
