@@ -141,6 +141,47 @@ type Query {
 }
 
 type Mutation {
+  AddBusinessProfile(
+    companyLogo: Upload
+    companyName: String!
+    email: String
+    phone: String
+    officeAddress: String
+    streetLine1: String
+    streetLine2: String
+    country: String
+    province: String
+    city: String
+    zipPostalCode: String
+    location: String
+  ): JSON
+
+
+    UpdateBusinessProfile(
+      id: String!
+    companyLogo: Upload
+    companyName: String!
+    email: String
+    phone: String
+    officeAddress: String
+    streetLine1: String
+    streetLine2: String
+    country: String
+    province: String
+    city: String
+    zipPostalCode: String
+    location: String
+  ): JSON
+
+
+      DeleteBusinessProfile(
+      id: String!
+  ): JSON
+
+  SetPrimaryBusinessProfile(
+      id: String!
+  ): JSON
+
   DeleteCandidateDocument(id: String!): JSON
 
   UploadCandidateDocument(
@@ -246,6 +287,7 @@ type User {
   lastName: String
 
   companyName: String
+  companyLogo: String
   middleName: String
   dateOfBirth: String
   profilePicture: String
@@ -281,6 +323,27 @@ type User {
   TotalProfileCompletion: Int
 
   candidateDocuments: [CandidateDocument]
+
+  businessContactInfos: [BusinessContactInfo]
+
+}
+
+
+
+type BusinessContactInfo {
+  id     :    String   
+  userId  :   String   
+  emailId  :  String  
+  phoneId  :  String    
+  addressId :   String   
+  isCurrent  :   Boolean  
+  createdAt:  String 
+  updatedAt : String 
+
+
+  email   :   Email    
+  phone   :   Phone   
+  address :   Address   
 }
 
 type CandidateDocument {
@@ -452,16 +515,22 @@ type Phone {
 }
 
 type Address {
-  id: String
-  latitude: Float
-  longitude: Float
-  city: String
-  province: String
+  id     :       String   
+  userId  :      String  
+  jobId     :    String
+  latitude  :    Float
+  longitude  :   Float
+  location    :  String
+  officeAddress: String
+  streetLine1:   String
+  streetLine2 :  String
+  city      :    String
+  province  :    String
   zipPostalCode: String
-  country: String
-  isCurrent: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
+  country:       String
+  isCurrent:     Boolean  
+  createdAt:     String
+  updatedAt:     String
 }
 
 type UserPreference {
