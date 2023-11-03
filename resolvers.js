@@ -1463,7 +1463,7 @@ include:{
             },
 
 
-            personalContactInfo:{
+            personalContactInfos:{
               include:{
                 email: true,
                 phone: true,
