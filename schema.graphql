@@ -48,6 +48,11 @@ scalar JSON
 scalar DateTime
 
 type Query {
+
+    ReverseGeocode(latitude: Float, longitude: Float): JSON
+  addressList(address: String!): [String]
+
+
   GetProvinces(country: String!): [String]
   GetCities(country: String!, province: String!): [String]
 
@@ -154,6 +159,51 @@ type Mutation {
     city: String
     zipPostalCode: String
     location: String
+  ): JSON
+
+
+    AddPersonalProfile(
+    profilePicture: Upload
+    name: String!
+    dateOfBirth: String
+    email: String
+    phone: String
+    officeAddress: String
+    streetLine1: String
+    streetLine2: String
+    country: String
+    province: String
+    city: String
+    zipPostalCode: String
+    location: String
+  ): JSON
+
+
+    UpdatePersonalProfile(
+      id: String!
+   profilePicture: Upload
+    name: String!
+    dateOfBirth: String
+    email: String
+    phone: String
+    officeAddress: String
+    streetLine1: String
+    streetLine2: String
+    country: String
+    province: String
+    city: String
+    zipPostalCode: String
+    location: String
+  ): JSON
+
+
+
+        DeletePersonalProfile(
+      id: String!
+  ): JSON
+
+  SetPrimaryPersonalProfile(
+      id: String!
   ): JSON
 
 
