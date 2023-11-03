@@ -84,6 +84,7 @@ model User {
   userPlanFeatures     UserPlanFeature[]
   userSessions         UserSession[]
   businessContactInfos BusinessContactInfo[]
+  personalContactInfos PersonalContactInfo[]
 
 }
 
@@ -99,6 +100,7 @@ model Email {
   department  String?
   user        User      @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
+  personalContactInfos PersonalContactInfo[]
 
 }
 
@@ -113,6 +115,7 @@ model Phone {
   department  String?
   user        User      @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
+  personalContactInfos PersonalContactInfo[]
 
 }
 
@@ -132,6 +135,25 @@ model BusinessContactInfo {
   phone      Phone?     @relation(fields: [phoneId], references: [id])
   address    Address?    @relation(fields: [addressId], references: [id])
 }
+
+
+
+model PersonalContactInfo {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String?    @db.Uuid
+  emailId    String?    @db.Uuid
+  phoneId    String?    @db.Uuid
+  addressId    String?    @db.Uuid
+  isCurrent     Boolean?   @default(false)
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  user       User?      @relation(fields: [userId], references: [id])
+  email      Email?     @relation(fields: [emailId], references: [id])
+  phone      Phone?     @relation(fields: [phoneId], references: [id])
+  address    Address?    @relation(fields: [addressId], references: [id])
+}
+
 
 
 model Designation {
@@ -439,6 +461,7 @@ model Address {
   job           Job?      @relation(fields: [jobId], references: [id])
   user          User?     @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
+  personalContactInfos PersonalContactInfo[]
 }
 
 model CandidateAddress {
