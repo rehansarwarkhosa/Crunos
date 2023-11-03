@@ -375,6 +375,7 @@ type User {
   candidateDocuments: [CandidateDocument]
 
   businessContactInfos: [BusinessContactInfo]
+  personalContactInfos: [PersonalContactInfo]
 
 }
 
@@ -395,6 +396,25 @@ type BusinessContactInfo {
   phone   :   Phone   
   address :   Address   
 }
+
+
+type PersonalContactInfo {
+  id     :    String   
+  userId  :   String   
+  emailId  :  String  
+  phoneId  :  String    
+  addressId :   String   
+  isCurrent  :   Boolean  
+  createdAt:  String 
+  updatedAt : String 
+
+
+  email   :   Email    
+  phone   :   Phone   
+  address :   Address   
+}
+
+
 
 type CandidateDocument {
   id: String
