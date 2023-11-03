@@ -1461,6 +1461,15 @@ include:{
   address: true
 }
             },
+
+
+            personalContactInfo:{
+              include:{
+                email: true,
+                phone: true,
+                address: true
+              }
+                          },
             candidateDocuments: {
               include: {
                 candidateDocumentType: true,
