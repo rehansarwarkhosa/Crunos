@@ -3616,6 +3616,245 @@ include:{
 
   Mutation: {
     //akram
+
+    FileUpload: async (_, { file }, context) => {
+      //--------------------------- File Uploading Start ----------------------
+      console.log("Before file upload");
+      let is_valid_extension;
+
+      let file_path_after_uploading = null;
+      let filename_after_uploading = null;
+      let fileSize = null;
+      let fileType = null;
+      let extension = null;
+      let fileSizeInBytes = null;
+      let fileURL = null;
+      let fileSizeInKB = null;
+      let fileSizeInMB = null;
+
+      if (file) {
+        const { createReadStream, filename, mimetype, encoding } = await file;
+        fileType = mimetype;
+
+        const stream = createReadStream();
+
+        const tempFilePath = "./tempfile"; // Adjust the path and filename as needed
+        const writeStream = fs.createWriteStream(tempFilePath);
+        stream.pipe(writeStream);
+
+        const MAX_FILE_SIZE_BYTES = 1.5 * 1024 * 1024; // 1.5 MB in bytes
+        //nadeem omer
+        writeStream.on("finish", () => {
+          const stats = fs.statSync(tempFilePath);
+          fileSizeInBytes = stats.size;
+
+          // Now you can use the fileSizeInBytes as needed
+          // e.g., store it in a database or do further processing
+          // ...
+
+          // Check if the file size exceeds the maximum allowed size
+
+          // Calculate file size in KB and MB
+          if (fileSizeInBytes >= 1024 * 1024) {
+            fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+            fileSizeInKB = fileSizeInBytes / 1024;
+          } else if (fileSizeInBytes >= 1024) {
+            fileSizeInKB = fileSizeInBytes / 1024;
+          }
+
+          if (fileSizeInMB) {
+            fileSize = `${fileSizeInMB.toFixed(2)} MB`;
+          } else if (fileSizeInKB) {
+            fileSize = `${fileSizeInKB.toFixed(2)} KB`;
+          } else {
+            fileSize = `${fileSizeInBytes} Byte${
+              fileSizeInBytes !== 1 ? "s" : ""
+            }`;
+          }
+
+          console.log("File size in bytes:", fileSizeInBytes);
+          console.log("Size in KB:", fileSizeInKB);
+          console.log("Size in MB:", fileSizeInMB);
+          console.log("Final calculated file size:", fileSize);
+
+          if (fileSizeInBytes > MAX_FILE_SIZE_BYTES) {
+            // Cleanup the temporary file
+            fs.unlinkSync(tempFilePath);
+
+            return {
+              success: false,
+              message: "File size exceeds the maximum allowed size (1.5 MB).",
+            };
+          }
+        });
+
+        fileSize = setTimeout(function () {
+          if (fileSize) {
+            if (fileSizeInBytes >= 1000000) {
+              return { success: false, message: "Very long size!" };
+            }
+          }
+        }, 100);
+
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+        // console.log(fileSizeInBytes);
+
+        // console.log(stream);
+        // stream.on("data", (chunk) => {
+        //   fileSizeInBytes += chunk.length;
+        // });
+        // Convert the Readable stream to a Node.js stream
+        const readableStream = new Readable();
+        readableStream._read = () => {}; // Ensure the stream is in flowing mode
+
+        // Pipe the GraphQL upload stream directly to the readableStream
+        stream.on("data", (chunk) => {
+          // fileSizeInBytes += chunk.length; // Increment file size
+          readableStream.push(chunk);
+        });
+        stream.on("end", () => {
+          readableStream.push(null); // Signal the end of the stream
+        });
+
+        // fileSizeInBytes = 2678793;
+        // const localFilePath = path.join(__dirname, "uploads", filename);
+        // console.log(localFilePath);
+        // // Save the file locally
+        // const localWriteStream = fs.createWriteStream(localFilePath);
+        // await stream.pipe(localWriteStream);
+
+        // // Read the file using fs
+        // const fileStream = fs.createReadStream(localFilePath);
+
+        // fs.createReadStream(localFilePath), console.log(fileStream);
+
+        // const fileSizeInKB = bytesToKB(fileSizeInBytes);
+        // const fileSizeInMB = bytesToMB(fileSizeInBytes);
+        //nadeem
+
+        console.log("=============================");
+
+        console.log(fileSizeInBytes);
+
+        console.log("=============================");
+
+        console.log("Size in Byte: ", fileSizeInBytes);
+        console.log("Size in KB: ", fileSizeInKB);
+        console.log("Size in MB: ", fileSizeInMB);
+
+        console.log("Final caluclated file size: ", fileSize);
+
+        let arr = filename.split(".");
+
+        let name = arr[0];
+        let ext = arr.pop();
+        extension = ext;
+        if (ExtensionList.includes(ext.toLowerCase())) {
+          is_valid_extension = true;
+        } else {
+          is_valid_extension = false;
+        }
+
+        if (!is_valid_extension) {
+          return { success: false, message: "Invalid file extension!" };
+          // throw new ValidationError("Invalid file extension!");
+        }
+
+        let url = path.join(`${name}-${Date.now()}.${ext}`);
+
+        filename_after_uploading = url;
+        AWS.config.update({
+          accessKeyId: "AKIAUUWI6OUAROXDTLIW",
+          secretAccessKey: "Ybsrmc9rxS/jcvmcakNYyw1hBRXSaSijIDx7xRJB",
+          //   region: "YOUR_REGION",
+        });
+        //akram
+        const s3 = new AWS.S3();
+        const bucketName = "crunos-internal-bucket/test";
+
+        async function uploadFile() {
+          const uploadParams = {
+            Bucket: bucketName,
+            Key: filename_after_uploading,
+            Body: readableStream,
+          };
+
+          try {
+            const data = await s3.upload(uploadParams).promise();
+            // console.log("File uploaded successfully. ETag:", data.ETag);
+            // console.log(data);
+            return data;
+          } catch (error) {
+            console.error("Error uploading file:", error);
+            throw error;
+          }
+        }
+
+        async function upload_file() {
+          return new Promise(async (resolve) => {
+            //-------------------------------------
+            await uploadFile()
+              .then(async (data) => {
+                console.log("File uploaded successfully:", data);
+                file_path_after_uploading = data.Location;
+
+                // console.log(file_path_after_uploading);
+                // console.log(filename_after_uploading);
+
+                // Assuming you have saved the uploaded file URL and filename
+                fileURL = file_path_after_uploading; // Replace with your file URL
+                console.log("file URL: ", file_path_after_uploading);
+                const fileName = filename_after_uploading; // Replace with your filename
+
+                resolve({ success: true, raw: "1" });
+                // return { success: true, raw: "" };
+
+                // return { success: true, raw: "" };
+              })
+              .catch((error) => {
+                console.error("Error uploading file:", error);
+                resolve({ success: false, raw: "1" });
+                // return { success: false, raw: "" };
+              });
+
+            //-------------------------------------
+          });
+        }
+
+        const returnVal = await upload_file();
+        // return returnVal;
+      } // end file uploading if
+
+      console.log("After file upload");
+
+      console.log("File Name: ", filename_after_uploading);
+      console.log("File URL: ", file_path_after_uploading);
+
+      // ===================================================================================
+
+      const uploadedFile = await context.prisma.file.create({
+        data: {
+          filename: filename_after_uploading, // Use the filename from the uploaded file
+          url: file_path_after_uploading,
+        },
+      });
+      console.log("After file upload");
+
+      return {
+        success: true,
+        fileURL: file_path_after_uploading,
+        filename: filename_after_uploading,
+        // raw: uploadedFile,
+      };
+    },
     AddBusinessProfile: async (_, args, context) => {
       let {
         companyLogo,
