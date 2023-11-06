@@ -146,6 +146,9 @@ type Query {
 }
 
 type Mutation {
+
+    FileUpload(file: Upload!): JSON
+    
   AddBusinessProfile(
     companyLogo: Upload
     companyName: String!
