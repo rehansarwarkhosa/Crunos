@@ -3840,13 +3840,13 @@ include:{
 
       // ===================================================================================
 
-      const uploadedFile = await context.prisma.file.create({
-        data: {
-          filename: filename_after_uploading, // Use the filename from the uploaded file
-          url: file_path_after_uploading,
-        },
-      });
-      console.log("After file upload");
+      // const uploadedFile = await context.prisma.file.create({
+      //   data: {
+      //     filename: filename_after_uploading, // Use the filename from the uploaded file
+      //     url: file_path_after_uploading,
+      //   },
+      // });
+      // console.log("After file upload");
 
       return {
         success: true,
