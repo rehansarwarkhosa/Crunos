@@ -1567,6 +1567,24 @@ include:{
         // DocumentsCompletion: Int;
 
         //------------------Calculate Personal Information Completion calculation
+
+
+          // Sort the 'businessContactInfos' and 'personalContactInfos' arrays in JavaScript
+  user.businessContactInfos.sort((a, b) => {
+    if (a.isCurrent === b.isCurrent) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    return b.isCurrent - a.isCurrent;
+  });
+
+  user.personalContactInfos.sort((a, b) => {
+    if (a.isCurrent === b.isCurrent) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    return b.isCurrent - a.isCurrent;
+  });
+  
+
         let filledFields = 0;
 
         // Fetch the user and related records
