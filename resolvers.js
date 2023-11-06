@@ -1566,6 +1566,7 @@ include:{
         // WorkInformationCompletion: Int;
         // DocumentsCompletion: Int;
 
+        //
         //------------------Calculate Personal Information Completion calculation
 
 
@@ -1583,7 +1584,7 @@ include:{
     }
     return b.isCurrent - a.isCurrent;
   });
-  
+
 
         let filledFields = 0;
 
