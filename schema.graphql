@@ -49,6 +49,12 @@ scalar DateTime
 
 type Query {
 
+
+
+
+
+  SearchSafetyInformation(searchString: String, skip: Int, take: Int): JSON
+
     ReverseGeocode(latitude: Float, longitude: Float): JSON
   addressList(address: String!): [String]
 
@@ -147,6 +153,15 @@ type Query {
 
 type Mutation {
 
+
+UpdateAdditionalInformation(additionalInformation: String!):JSON
+
+DeleteCandidateSafetyInformation(id: String): JSON
+
+
+DeleteAdditionalInformation:JSON
+
+
     FileUpload(file: Upload!): JSON
     
   AddBusinessProfile(
@@ -239,8 +254,8 @@ type Mutation {
 
   UploadCandidateDocument(
     candidateFileType: String!
-    file: Upload
-    accepted: Boolean
+    file: Upload!
+    # accepted: Boolean
   ): JSON
 
   UpdateMyWorkInformation(
@@ -258,6 +273,7 @@ type Mutation {
     currentLocationRadius: Int
     nearMyAddressRadius: Int
   ): JSON
+
   UpdatePersonalInformation(
     name: String
     contactNo: String
@@ -266,6 +282,63 @@ type Mutation {
     emergencyContact: String
   ): JSON
 
+
+  AddWorkExperience(
+    jobTitle: String!
+    company: String!
+    startDate: DateTime!
+    endDate: DateTime
+    isCurrentPosition: Boolean
+    description: String
+  ): JSON
+
+
+    UpdateWorkExperience(
+    id: String!
+    jobTitle: String
+    company: String
+    startDate: DateTime
+    endDate: DateTime
+    isCurrentPosition: Boolean
+    description: String
+  ): JSON
+
+
+  DeleteWorkExperience(id: String!): JSON
+
+
+
+  AddEducation(
+    levelOfEducation: String!
+    institutionName: String!
+    fieldOfStudy: String!
+    startDate: DateTime!
+    endDate: DateTime
+    isInProgress: Boolean
+  ): JSON
+
+
+
+  UpdateEducation(
+    id: String!
+    levelOfEducation: String
+    institutionName: String
+    fieldOfStudy: String
+    startDate: DateTime
+    endDate: DateTime
+    isInProgress: Boolean
+  ): JSON
+
+
+
+
+  DeleteEducation(id: String!): JSON
+
+
+
+  AddCandidateSafetyInformation(safetyInformationId: String!): JSON
+
+
   DeleteSearchHistory(id: Int): JSON
   SetUserLocation(latitude: Float, longitude: Float): JSON
   BookmarkJob(jobId: String!): Bookmark
@@ -273,6 +346,57 @@ type Mutation {
   ApplyToJob(jobId: String!, resumeId: String!): JSON
   RevokeJobApplication(applicationId: String!): JSON
 }
+
+
+type CandidateSafetyInformation {
+  id     :             String  
+  userId  :            String 
+  safetyInformationId :String  
+  createdAt    :       DateTime
+  updatedAt   :        DateTime
+  # user     :         User         
+  safetyInformation :SafetyInformation 
+
+}
+
+type SafetyInformation {
+  id    :      String  
+  name   :     String
+  description: String
+  createdAt :  DateTime 
+  updatedAt :  DateTime 
+  # CandidateSafetyInformation: [CandidateSafetyInformation]
+}
+
+type Education {
+  id         :      String  
+  levelOfEducation: String
+  institutionName : String
+  fieldOfStudy  :   String
+  startDate   :     DateTime
+  endDate   :       DateTime
+  isInProgress :    Boolean  
+  createdAt :       DateTime 
+  updatedAt :       DateTime 
+  userId    :       String   
+  # user   :          User     
+}
+
+type WorkExperience {
+  id            :    String    
+  jobTitle       :   String
+  company       :    String
+  startDate      :   DateTime
+  endDate        :   DateTime
+  isCurrentPosition: Boolean 
+  description    :   String
+  createdAt   :      DateTime
+  updatedAt  :       DateTime
+  userId   :         String   
+  # user    :          User     
+}
+
+
 
 type UserBookmarkedFilters {
   skills: [String]
@@ -338,7 +462,7 @@ type User {
   name: String
   firstName: String
   lastName: String
-
+additionalInformation: String
   companyName: String
   companyLogo: String
   middleName: String
@@ -379,6 +503,11 @@ type User {
 
   businessContactInfos: [BusinessContactInfo]
   personalContactInfos: [PersonalContactInfo]
+
+  workExperiences    :  [WorkExperience]
+  educations         :  [Education]
+
+  candidateSafetyInformations :[CandidateSafetyInformation]
 
 }
 
