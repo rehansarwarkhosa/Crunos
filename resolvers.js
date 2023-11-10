@@ -154,6 +154,7 @@ const {
   graphqlUploadExpress, // A Koa implementation is also exported.
 } = require("graphql-upload");
 const { KnownFragmentNamesRule } = require("graphql");
+const e = require("express");
 
 let ExtensionList = [
   "jpg",
@@ -178,6 +179,47 @@ const resolvers = {
   Upload: GraphQLUpload,
 
   Query: {
+
+    SearchSafetyInformation: async (_, { searchString, skip, take }, context) => {
+      const sanitizedSkip = Math.max(0, parseInt(skip) || 0);
+      const sanitizedTake = Math.max(0, parseInt(take) || 10);
+    
+
+      const name = searchString;
+      try {
+        // Check if name is null or an empty string
+        if (name === null || name === undefined || name.trim() === "") {
+          console.log("Wrong search input");
+          // return [];
+        }
+      } catch (error) {
+        throw new Error(`Failed to process search: ${error.message}`);
+      }
+    
+      const searchFilters = {
+        OR: [
+          { name: { contains: name || "", mode: "insensitive" } },
+          { description: { contains: name || "", mode: "insensitive" } },
+        ],
+      };
+    
+      const matchingSafetyInformation = await context.prisma.safetyInformation.findMany({
+        where: searchFilters,
+        skip: sanitizedSkip,
+        take: sanitizedTake,
+        orderBy: {
+          name: 'asc', // Order by name alphabetically
+        },
+      });
+    
+      return matchingSafetyInformation.map((safety) => ({
+        id: safety.id,
+        name: safety.name,
+        description: safety.description,
+        createdAt: safety.createdAt,
+        updatedAt: safety.updatedAt,
+      }));
+    },
 
     ReverseGeocode: async (parent, args, context) => {
       const { latitude, longitude } = args;
@@ -1469,7 +1511,24 @@ include:{
                 phone: true,
                 address: true
               }
-                          },
+                  },
+
+
+
+
+                  workExperiences:true,
+                  educations: true,
+
+
+                  candidateSafetyInformations:{
+                    include:{
+                      safetyInformation: true,
+                    }
+                        },
+
+
+
+
             candidateDocuments: {
               include: {
                 candidateDocumentType: true,
@@ -3615,7 +3674,184 @@ include:{
   },
 
   Mutation: {
-    //akram
+
+    DeleteAdditionalInformation: async (_, __, context) => {
+      try {
+        // Validate user token and obtain userId
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the user
+        let user = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+    
+        // Check if the user exists
+        if (!user) {
+          return {
+            success: false,
+            message: 'User not found!',
+          };
+        }
+    
+        // Delete or set additional information to null
+        user = await context.prisma.user.update({
+          where: { id: userId },
+          data: {
+            additionalInformation: null,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Additional information deleted or set to null successfully.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to delete additional information: ${error.message}`,
+        };
+      }
+    },
+    
+
+    UpdateAdditionalInformation: async (_, { additionalInformation }, context) => {
+      try {
+        // Validate user token and obtain userId
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the user
+        let user = await context.prisma.user.findUnique({
+          where: { id: userId },
+        });
+    
+        // Check if the user exists
+        if (!user) {
+          return {
+            success: false,
+            message: 'User not found!',
+            raw: null,
+          };
+        }
+    
+        // Update additional information
+        user = await context.prisma.user.update({
+          where: { id: userId },
+          data: {
+            additionalInformation,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Additional information updated successfully.',
+          raw: user,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to update additional information: ${error.message}`,
+          raw: null,
+        };
+      }
+    },
+    
+
+    DeleteCandidateSafetyInformation: async (_, { id }, context) => {
+      try {
+        // Validate user token and obtain userId
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the candidate safety information entry
+        const candidateSafetyInfo = await context.prisma.candidateSafetyInformation.findUnique({
+          where: { id },
+        });
+    
+        // Check if the entry exists and belongs to the authenticated user
+        if (!candidateSafetyInfo || candidateSafetyInfo.userId !== userId) {
+          return {
+            success: false,
+            message: 'Candidate safety information not found or unauthorized to delete.',
+          };
+        }
+    
+        // Delete candidate safety information
+        await context.prisma.candidateSafetyInformation.delete({
+          where: { id },
+        });
+    
+        return {
+          success: true,
+          message: 'Candidate safety information deleted successfully.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to delete candidate safety information: ${error.message}`,
+        };
+      }
+    },
+    
+   
+    AddCandidateSafetyInformation: async (_, { safetyInformationId }, context) => {
+      try {
+        // Validate user token and obtain userId
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the user
+        let user = await context.prisma.user.findUnique({
+          where: { id: userId },
+          include: { workExperiences: true },
+        });
+    
+        if (!user) {
+          return {
+            success: false,
+            message: 'User not found!',
+            candidateSafetyInformation: null,
+          };
+        }
+    
+        // Check if the safety information exists
+        const safetyInfoExists = await context.prisma.safetyInformation.findUnique({
+          where: { id: safetyInformationId },
+        });
+    
+        if (!safetyInfoExists) {
+          return {
+            success: false,
+            message: 'Safety information not found.',
+            raw: null,
+          };
+        }
+    
+        // Add candidate safety information
+        const newCandidateSafetyInformation = await context.prisma.candidateSafetyInformation.create({
+          data: {
+            userId,
+            safetyInformationId,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Candidate safety information added successfully.',
+          raw: newCandidateSafetyInformation,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to add candidate safety information!`,
+          raw: error.message,
+        };
+      }
+    },
+
+    
+    
+    
+    
+    
+    
 
     FileUpload: async (_, { file }, context) => {
       //--------------------------- File Uploading Start ----------------------
@@ -6730,11 +6966,21 @@ include:{
             },
           });
 
-        return {
-          success: true,
-          message: "CandidateDocument deleted successfully",
-          raw: deletedCandidateDocument,
-        };
+
+          if(deletedCandidateDocument.count < 1){
+            return {
+              success: true,
+              message: "File not found!",
+              raw: deletedCandidateDocument,
+            };
+          }else{
+            return {
+              success: true,
+              message: "CandidateDocument deleted successfully",
+              raw: deletedCandidateDocument,
+            };
+          }
+       
       } catch (error) {
         console.error("Error deleting CandidateDocument:", error);
         return {
@@ -6746,7 +6992,7 @@ include:{
     },
     UploadCandidateDocument: async (
       _,
-      { candidateFileType, file, accepted },
+      { candidateFileType, file },
       context
     ) => {
       // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
@@ -6767,6 +7013,36 @@ include:{
         throw new Error("Invalid token!", error);
       }
       console.log("----------------------------------------------");
+
+
+      const documentTypesWithFile = [
+        "690a2283-80c0-459c-9f61-1bd7af3283eb", // Resume
+        "96f0bf7d-280d-49ac-bf33-a9eb82f8f9a4", // Other
+      ];
+
+      if (documentTypesWithFile.includes(candidateFileType)) {
+        console.log(
+          "------------------------condition true 1--------------------------"
+        );
+        // Check if a file was provided
+        if (!file) {
+          return {
+            success: false,
+            message: "A file is required for this document type.",
+          };
+          // throw new Error("A file is required for this document type.");
+        }
+      } else{
+        console.log(
+          "------------------------condition true 2--------------------------"
+        );
+        return {
+          success: false,
+          message: "An invalid document type.",
+        };
+      }
+
+
 
       // Check if candidateFileType is valid
       let validDocumentTypes =
@@ -6791,88 +7067,78 @@ include:{
         "ea7ea9eb-5ab3-490e-b08a-0aaa7c464b36", // Employee Terms & Conditions
       ];
 
-      if (!documentTypesWithoutFile.includes(candidateFileType)) {
-        console.log(
-          "------------------------condition true 1--------------------------"
-        );
-        // Check if a file was provided
-        if (!file) {
-          return {
-            success: false,
-            message: "A file is required for this document type.",
-          };
-          // throw new Error("A file is required for this document type.");
-        }
-      } else if (documentTypesWithoutFile.includes(candidateFileType)) {
-        console.log(
-          "------------------------condition true 2 --------------------------"
-        );
-        // validDocumentTypes =
-        //   await context.prisma.candidateDocumentType.findMany({
-        //     where: {
-        //       id: candidateFileType,
-        //     },
-        //   });
 
-        // if (!validDocumentTypes[0].length) {
-        //   return {
-        //     success: false,
-        //     message: "Invalid candidateFileType.",
-        //   };
-        //   // throw new Error('Invalid candidateFileType.');
-        // }
 
-        const existingCandidateDocument =
-          await context.prisma.candidateDocument.findFirst({
-            where: {
-              userId,
-              candidateDocumentTypeId: candidateFileType,
-            },
-          });
+      // else if (documentTypesWithoutFile.includes(candidateFileType)) {
+      //   console.log(
+      //     "------------------------condition true 2 --------------------------"
+      //   );
+      //   // validDocumentTypes =
+      //   //   await context.prisma.candidateDocumentType.findMany({
+      //   //     where: {
+      //   //       id: candidateFileType,
+      //   //     },
+      //   //   });
 
-        if (existingCandidateDocument) {
-          // If the record exists, update acceptedTermsConditions
-          console.log(
-            "------------------------condition true 3 --------------------------"
-          );
-          const updatedCandidateDocument =
-            await context.prisma.candidateDocument.update({
-              where: {
-                id: existingCandidateDocument.id,
-              },
-              data: {
-                acceptedTermsConditions: accepted,
-              },
-            });
-          console.log(
-            "Updated existing candidate document:",
-            updatedCandidateDocument
-          );
+      //   // if (!validDocumentTypes[0].length) {
+      //   //   return {
+      //   //     success: false,
+      //   //     message: "Invalid candidateFileType.",
+      //   //   };
+      //   //   // throw new Error('Invalid candidateFileType.');
+      //   // }
 
-          return { success: true, raw: updatedCandidateDocument };
-        } else {
-          // If the record doesn't exist, create a new one
+      //   const existingCandidateDocument =
+      //     await context.prisma.candidateDocument.findFirst({
+      //       where: {
+      //         userId,
+      //         candidateDocumentTypeId: candidateFileType,
+      //       },
+      //     });
 
-          console.log(
-            "------------------------condition true 4--------------------------"
-          );
+      //   if (existingCandidateDocument) {
+      //     // If the record exists, update acceptedTermsConditions
+      //     console.log(
+      //       "------------------------condition true 3 --------------------------"
+      //     );
+      //     const updatedCandidateDocument =
+      //       await context.prisma.candidateDocument.update({
+      //         where: {
+      //           id: existingCandidateDocument.id,
+      //         },
+      //         data: {
+      //           acceptedTermsConditions: accepted,
+      //         },
+      //       });
+      //     console.log(
+      //       "Updated existing candidate document:",
+      //       updatedCandidateDocument
+      //     );
 
-          console.log("Condition True!");
+      //     return { success: true, raw: updatedCandidateDocument };
+      //   } else {
+      //     // If the record doesn't exist, create a new one
 
-          // console.log(candidateFileType);
-          // console.log(accepted);
-          const newCandidateDocument =
-            await context.prisma.candidateDocument.create({
-              data: {
-                candidateDocumentTypeId: candidateFileType,
-                acceptedTermsConditions: accepted,
-                userId,
-              },
-            });
-          console.log("Created new candidate document:", newCandidateDocument);
-          return { success: true, raw: newCandidateDocument };
-        }
-      }
+      //     console.log(
+      //       "------------------------condition true 4--------------------------"
+      //     );
+
+      //     console.log("Condition True!");
+
+      //     // console.log(candidateFileType);
+      //     // console.log(accepted);
+      //     const newCandidateDocument =
+      //       await context.prisma.candidateDocument.create({
+      //         data: {
+      //           candidateDocumentTypeId: candidateFileType,
+      //           acceptedTermsConditions: accepted,
+      //           userId,
+      //         },
+      //       });
+      //     console.log("Created new candidate document:", newCandidateDocument);
+      //     return { success: true, raw: newCandidateDocument };
+      //   }
+      // }
 
       // Your file upload logic here using the provided S3 upload function
 
@@ -7649,6 +7915,273 @@ include:{
         return { success: false, raw: { message: error.message } };
       }
     },
+
+     AddWorkExperience : async (_, args, context) => {
+      const { jobTitle, company, startDate, endDate, isCurrentPosition, description } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the user
+        let user = await context.prisma.user.findUnique({
+          where: { id: userId },
+          include: { workExperiences: true },
+        });
+    
+        if (!user) {
+          return {
+            success: false,
+            message: 'User not found!',
+            raw: null,
+          };
+        }
+    
+        // Ensure the user does not exceed the maximum allowed work experiences (30 in this case)
+        if (user.workExperiences.length >= 30) {
+          return {
+            success: false,
+            message: 'Maximum limit of work experiences reached.',
+            raw: null,
+          };
+        }
+    
+        // Add work experience
+        const newWorkExperience = await context.prisma.workExperience.create({
+          data: {
+            jobTitle,
+            company,
+            startDate,
+            endDate,
+            isCurrentPosition: isCurrentPosition || false,
+            description,
+            userId,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Work experience added successfully.',
+          raw: newWorkExperience,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+          raw: null,
+        };
+      }
+    },
+
+
+     UpdateWorkExperience : async (_, args, context) => {
+      const { id, jobTitle, company, startDate, endDate, isCurrentPosition, description } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the work experience entry
+        let workExperience = await context.prisma.workExperience.findUnique({
+          where: { id: id },
+        });
+    
+        if (!workExperience || workExperience.userId !== userId) {
+          return {
+            success: false,
+            message: 'Work experience not found or unauthorized to update.',
+            workExperience: null,
+          };
+        }
+    
+        // Update work experience
+        workExperience = await context.prisma.workExperience.update({
+          where: { id: id },
+          data: {
+            jobTitle: jobTitle || workExperience.jobTitle,
+            company: company || workExperience.company,
+            startDate: startDate || workExperience.startDate,
+            endDate: endDate || workExperience.endDate,
+            isCurrentPosition: isCurrentPosition !== undefined ? isCurrentPosition : workExperience.isCurrentPosition,
+            description: description || workExperience.description,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Work experience updated successfully.',
+          raw: workExperience,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+          raw: null,
+        };
+      }
+    },
+
+
+     DeleteWorkExperience : async (_, args, context) => {
+      const { id } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the work experience entry
+        const workExperience = await context.prisma.workExperience.findUnique({
+          where: { id: id },
+        });
+    
+        if (!workExperience || workExperience.userId !== userId) {
+          return {
+            success: false,
+            message: 'Work experience not found or unauthorized to delete.',
+          };
+        }
+    
+        // Delete work experience
+        await context.prisma.workExperience.delete({
+          where: { id: id },
+        });
+    
+        return {
+          success: true,
+          message: 'Work experience deleted successfully.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+    },
+
+
+
+     AddEducation : async (_, args, context) => {
+      const { levelOfEducation, institutionName, fieldOfStudy, startDate, endDate, isInProgress } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Add education
+        const newEducation = await context.prisma.education.create({
+          data: {
+            levelOfEducation,
+            institutionName,
+            fieldOfStudy,
+            startDate,
+            endDate,
+            isInProgress: isInProgress || false,
+            userId,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Education added successfully.',
+          raw: newEducation,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+          raw: null,
+        };
+      }
+    },
+
+
+
+     UpdateEducation : async (_, args, context) => {
+      const { id, levelOfEducation, institutionName, fieldOfStudy, startDate, endDate, isInProgress } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the education entry
+        let education = await context.prisma.education.findUnique({
+          where: { id: id },
+        });
+    
+        if (!education || education.userId !== userId) {
+          return {
+            success: false,
+            message: 'Education not found or unauthorized to update.',
+            education: null,
+          };
+        }
+    
+        // Update education
+        education = await context.prisma.education.update({
+          where: { id: id },
+          data: {
+            levelOfEducation: levelOfEducation || education.levelOfEducation,
+            institutionName: institutionName || education.institutionName,
+            fieldOfStudy: fieldOfStudy || education.fieldOfStudy,
+            startDate: startDate || education.startDate,
+            endDate: endDate || education.endDate,
+            isInProgress: isInProgress !== undefined ? isInProgress : education.isInProgress,
+          },
+        });
+    
+        return {
+          success: true,
+          message: 'Education updated successfully.',
+          raw: education,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+          raw: null,
+        };
+      }
+    },
+
+
+
+
+     DeleteEducation : async (_, args, context) => {
+      const { id } = args;
+    
+      try {
+        // Validate user token
+        const userId = await validateCognitoToken(context.token);
+    
+        // Fetch the education entry
+        const education = await context.prisma.education.findUnique({
+          where: { id: id },
+        });
+    
+        if (!education || education.userId !== userId) {
+          return {
+            success: false,
+            message: 'Education not found or unauthorized to delete.',
+          };
+        }
+    
+        // Delete education
+        await context.prisma.education.delete({
+          where: { id: id },
+        });
+    
+        return {
+          success: true,
+          message: 'Education deleted successfully.',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+    },
+
 
     DeleteSearchHistory: async (_, { id }, context) => {
       try {
