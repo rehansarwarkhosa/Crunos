@@ -57,6 +57,7 @@ model User {
   companyLogo          String?
   companyName          String?
   dateOfBirth          DateTime?
+  additionalInformation String?
   roleId               String                 @db.Uuid
   createdAt            DateTime?              @default(now())
   updatedAt            DateTime?              @updatedAt
@@ -85,76 +86,124 @@ model User {
   userSessions         UserSession[]
   businessContactInfos BusinessContactInfo[]
   personalContactInfos PersonalContactInfo[]
+  workExperiences      WorkExperience[]
+  educations           Education[]
+
+  candidateSafetyInformations CandidateSafetyInformation[]
+}
+
+model CandidateSafetyInformation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @db.Uuid
+  safetyInformationId String   @db.Uuid
+  createdAt           DateTime? @default(now())
+  updatedAt           DateTime? @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id])
+  safetyInformation SafetyInformation @relation(fields: [safetyInformationId], references: [id])
 
 }
 
-
-model Email {
-  id          String    @id @default(uuid()) @db.Uuid
-  email       String    @unique
-  isPrimary   Boolean   @default(false)
-  userId      String    @db.Uuid
+model SafetyInformation {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
   createdAt   DateTime? @default(now())
   updatedAt   DateTime? @updatedAt
-  description String?
-  department  String?
-  user        User      @relation(fields: [userId], references: [id])
+
+
+  CandidateSafetyInformation CandidateSafetyInformation[]
+}
+
+model Education {
+  id               String    @id @default(uuid()) @db.Uuid
+  levelOfEducation String
+  institutionName  String
+  fieldOfStudy     String
+  startDate        DateTime
+  endDate          DateTime?
+  isInProgress     Boolean?  @default(false)
+  createdAt        DateTime? @default(now())
+  updatedAt        DateTime? @updatedAt
+  userId           String    @db.Uuid
+  user             User      @relation(fields: [userId], references: [id])
+}
+
+model WorkExperience {
+  id                String    @id @default(uuid()) @db.Uuid
+  jobTitle          String
+  company           String
+  startDate         DateTime
+  endDate           DateTime?
+  isCurrentPosition Boolean?  @default(false)
+  description       String?
+  createdAt         DateTime? @default(now())
+  updatedAt         DateTime? @updatedAt
+  userId            String    @db.Uuid
+  user              User      @relation(fields: [userId], references: [id])
+}
+
+model Email {
+  id                   String                @id @default(uuid()) @db.Uuid
+  email                String                @unique
+  isPrimary            Boolean               @default(false)
+  userId               String                @db.Uuid
+  createdAt            DateTime?             @default(now())
+  updatedAt            DateTime?             @updatedAt
+  description          String?
+  department           String?
+  user                 User                  @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
   personalContactInfos PersonalContactInfo[]
 
 }
 
 model Phone {
-  id          String    @id @default(uuid()) @db.Uuid
-  phone       String    @unique
-  isPrimary   Boolean   @default(false)
-  userId      String    @db.Uuid
-  createdAt   DateTime? @default(now())
-  updatedAt   DateTime? @updatedAt
-  description String?
-  department  String?
-  user        User      @relation(fields: [userId], references: [id])
+  id                   String                @id @default(uuid()) @db.Uuid
+  phone                String                @unique
+  isPrimary            Boolean               @default(false)
+  userId               String                @db.Uuid
+  createdAt            DateTime?             @default(now())
+  updatedAt            DateTime?             @updatedAt
+  description          String?
+  department           String?
+  user                 User                  @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
   personalContactInfos PersonalContactInfo[]
 
 }
 
-
 model BusinessContactInfo {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String?    @db.Uuid
-  emailId    String?    @db.Uuid
-  phoneId    String?    @db.Uuid
-  addressId    String?    @db.Uuid
-  isCurrent     Boolean?   @default(false)
-  createdAt  DateTime? @default(now())
-  updatedAt  DateTime? @updatedAt
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String?   @db.Uuid
+  emailId   String?   @db.Uuid
+  phoneId   String?   @db.Uuid
+  addressId String?   @db.Uuid
+  isCurrent Boolean?  @default(false)
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 
-  user       User?      @relation(fields: [userId], references: [id])
-  email      Email?     @relation(fields: [emailId], references: [id])
-  phone      Phone?     @relation(fields: [phoneId], references: [id])
-  address    Address?    @relation(fields: [addressId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  email   Email?   @relation(fields: [emailId], references: [id])
+  phone   Phone?   @relation(fields: [phoneId], references: [id])
+  address Address? @relation(fields: [addressId], references: [id])
 }
-
-
 
 model PersonalContactInfo {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String?    @db.Uuid
-  emailId    String?    @db.Uuid
-  phoneId    String?    @db.Uuid
-  addressId    String?    @db.Uuid
-  isCurrent     Boolean?   @default(false)
-  createdAt  DateTime? @default(now())
-  updatedAt  DateTime? @updatedAt
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String?   @db.Uuid
+  emailId   String?   @db.Uuid
+  phoneId   String?   @db.Uuid
+  addressId String?   @db.Uuid
+  isCurrent Boolean?  @default(false)
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 
-  user       User?      @relation(fields: [userId], references: [id])
-  email      Email?     @relation(fields: [emailId], references: [id])
-  phone      Phone?     @relation(fields: [phoneId], references: [id])
-  address    Address?    @relation(fields: [addressId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  email   Email?   @relation(fields: [emailId], references: [id])
+  phone   Phone?   @relation(fields: [phoneId], references: [id])
+  address Address? @relation(fields: [addressId], references: [id])
 }
-
-
 
 model Designation {
   id        String   @id @default(uuid()) @db.Uuid
@@ -298,32 +347,31 @@ model Document {
 }
 
 model CandidateDocument {
-  id           String           @id @default(uuid()) @db.Uuid
-  title        String?
-  description  String?
-  fileName     String?
-  fileSize     String?
-  fileSizeInBytes Int?
-  fileType     String?
-  extension    String?
-  fileURL      String?
-  createdAt    DateTime?        @default(now())
-  updatedAt    DateTime?        @updatedAt
-  acceptedTermsConditions Boolean? @default(false)
-  candidateDocumentTypeId   String           @db.Uuid
-  candidateDocumentType     CandidateDocumentType @relation(fields: [candidateDocumentTypeId], references: [id])
-  userId     String   @db.Uuid
-   user       User     @relation(fields: [userId], references: [id])
+  id                      String                @id @default(uuid()) @db.Uuid
+  title                   String?
+  description             String?
+  fileName                String?
+  fileSize                String?
+  fileSizeInBytes         Int?
+  fileType                String?
+  extension               String?
+  fileURL                 String?
+  createdAt               DateTime?             @default(now())
+  updatedAt               DateTime?             @updatedAt
+  acceptedTermsConditions Boolean?              @default(false)
+  candidateDocumentTypeId String                @db.Uuid
+  candidateDocumentType   CandidateDocumentType @relation(fields: [candidateDocumentTypeId], references: [id])
+  userId                  String                @db.Uuid
+  user                    User                  @relation(fields: [userId], references: [id])
 }
 
-
 model CandidateDocumentType {
-  id        String     @id @default(uuid()) @db.Uuid
-  name      String     @unique
-  isTermsConditionsDocument Boolean? @default(false)
-  createdAt DateTime?  @default(now())
-  updatedAt DateTime?  @updatedAt
-  candidateDocument CandidateDocument[]
+  id                        String              @id @default(uuid()) @db.Uuid
+  name                      String              @unique
+  isTermsConditionsDocument Boolean?            @default(false)
+  createdAt                 DateTime?           @default(now())
+  updatedAt                 DateTime?           @updatedAt
+  candidateDocument         CandidateDocument[]
 }
 
 model JobDocument {
@@ -442,24 +490,24 @@ model CandidateJobCategory {
 }
 
 model Address {
-  id            String    @id @default(uuid()) @db.Uuid
-  userId        String?   @db.Uuid
-  jobId         String?   @unique
-  latitude      Float?
-  longitude     Float?
-  location      String?
-  officeAddress String?
-  streetLine1   String?
-  streetLine2   String?
-  city          String?
-  province      String?
-  zipPostalCode String?
-  country       String?
-  isCurrent     Boolean?   @default(false)
-  createdAt     DateTime? @default(now())
-  updatedAt     DateTime? @updatedAt
-  job           Job?      @relation(fields: [jobId], references: [id])
-  user          User?     @relation(fields: [userId], references: [id])
+  id                   String                @id @default(uuid()) @db.Uuid
+  userId               String?               @db.Uuid
+  jobId                String?               @unique
+  latitude             Float?
+  longitude            Float?
+  location             String?
+  officeAddress        String?
+  streetLine1          String?
+  streetLine2          String?
+  city                 String?
+  province             String?
+  zipPostalCode        String?
+  country              String?
+  isCurrent            Boolean?              @default(false)
+  createdAt            DateTime?             @default(now())
+  updatedAt            DateTime?             @updatedAt
+  job                  Job?                  @relation(fields: [jobId], references: [id])
+  user                 User?                 @relation(fields: [userId], references: [id])
   businessContactInfos BusinessContactInfo[]
   personalContactInfos PersonalContactInfo[]
 }
@@ -588,8 +636,6 @@ model PlanHistory {
   updatedAt DateTime? @updatedAt
 }
 
-
-
 model CandidatePhoneType {
   id              String           @id @default(uuid()) @db.Uuid
   name            String           @unique
@@ -633,7 +679,7 @@ model canadacities {
   timezone      String?
   ranking       Int?
   postal        String?
-  id            BigInt @unique @id
+  id            BigInt   @id @unique
 
 
 }
