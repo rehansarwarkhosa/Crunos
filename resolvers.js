@@ -7368,39 +7368,39 @@ include:{
                 console.log("file URL: ", file_path_after_uploading);
                 const fileName = filename_after_uploading; // Replace with your filename
 
-                const existingCandidateDocument =
-                  await context.prisma.candidateDocument.findFirst({
-                    where: {
-                      userId,
-                      candidateDocumentTypeId: candidateFileType,
-                    },
-                  });
+                // const existingCandidateDocument =
+                //   await context.prisma.candidateDocument.findFirst({
+                //     where: {
+                //       userId,
+                //       candidateDocumentTypeId: candidateFileType,
+                //     },
+                //   });
 
-                if (existingCandidateDocument) {
-                  // If the record exists, update acceptedTermsConditions
-                  const updatedCandidateDocument =
-                    await context.prisma.candidateDocument.update({
-                      where: {
-                        id: existingCandidateDocument.id,
-                      },
-                      data: {
-                        candidateDocumentTypeId: candidateFileType,
-                        fileName,
-                        fileURL,
-                        fileSize,
-                        fileSizeInBytes,
-                        extension,
-                        fileType,
-                        // acceptedTermsConditions: accepted,
-                      },
-                    });
-                  // console.log(
-                  // "Updated existing candidate document:",
-                  // updatedCandidateDocument
-                  // );
-                  resolve({ success: true, raw: updatedCandidateDocument });
-                  return { success: true, raw: updatedCandidateDocument };
-                }
+                // if (existingCandidateDocument) {
+                //   // If the record exists, update acceptedTermsConditions
+                //   const updatedCandidateDocument =
+                //     await context.prisma.candidateDocument.update({
+                //       where: {
+                //         id: existingCandidateDocument.id,
+                //       },
+                //       data: {
+                //         candidateDocumentTypeId: candidateFileType,
+                //         fileName,
+                //         fileURL,
+                //         fileSize,
+                //         fileSizeInBytes,
+                //         extension,
+                //         fileType,
+                //         // acceptedTermsConditions: accepted,
+                //       },
+                //     });
+                //   // console.log(
+                //   // "Updated existing candidate document:",
+                //   // updatedCandidateDocument
+                //   // );
+                //   resolve({ success: true, raw: updatedCandidateDocument });
+                //   return { success: true, raw: updatedCandidateDocument };
+                // }
 
                 // Assuming you have a Prisma instance available in the context
                 const newCandidateDocument =
