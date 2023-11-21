@@ -179,11 +179,13 @@ const resolvers = {
   Upload: GraphQLUpload,
 
   Query: {
-
-    SearchSafetyInformation: async (_, { searchString, skip, take }, context) => {
+    SearchSafetyInformation: async (
+      _,
+      { searchString, skip, take },
+      context
+    ) => {
       const sanitizedSkip = Math.max(0, parseInt(skip) || 0);
       const sanitizedTake = Math.max(0, parseInt(take) || 10);
-    
 
       const name = searchString;
       try {
@@ -195,23 +197,24 @@ const resolvers = {
       } catch (error) {
         throw new Error(`Failed to process search: ${error.message}`);
       }
-    
+
       const searchFilters = {
         OR: [
           { name: { contains: name || "", mode: "insensitive" } },
           { description: { contains: name || "", mode: "insensitive" } },
         ],
       };
-    
-      const matchingSafetyInformation = await context.prisma.safetyInformation.findMany({
-        where: searchFilters,
-        skip: sanitizedSkip,
-        take: sanitizedTake,
-        orderBy: {
-          name: 'asc', // Order by name alphabetically
-        },
-      });
-    
+
+      const matchingSafetyInformation =
+        await context.prisma.safetyInformation.findMany({
+          where: searchFilters,
+          skip: sanitizedSkip,
+          take: sanitizedTake,
+          orderBy: {
+            name: "asc", // Order by name alphabetically
+          },
+        });
+
       return matchingSafetyInformation.map((safety) => ({
         id: safety.id,
         name: safety.name,
@@ -257,7 +260,6 @@ const resolvers = {
         });
       });
     },
-  
 
     addressList: async (parent, args, context) => {
       const { address } = args;
@@ -1496,42 +1498,49 @@ const resolvers = {
             id: userId,
           },
           include: {
-            businessContactInfos:{
-include:{
-  email: true,
-  phone: true,
-  address: true
-}
-            },
-
-
-            personalContactInfos:{
-              include:{
+            businessContactInfos: {
+              include: {
                 email: true,
                 phone: true,
-                address: true
-              }
-                  },
+                address: true,
+              },
+            },
 
+            personalContactInfos: {
+              include: {
+                email: true,
+                phone: true,
+                address: true,
+              },
+            },
 
+            workExperiences: {
+              orderBy: {
+                startDate: "desc", // Order by startDate in descending order
+              },
+            },
 
+            educations: {
+              orderBy: {
+                startDate: "desc", // Order by startDate in descending order
+              },
+            },
 
-                  workExperiences:true,
-                  educations: true,
-
-
-                  candidateSafetyInformations:{
-                    include:{
-                      safetyInformation: true,
-                    }
-                        },
-
-
-
+            candidateSafetyInformations: {
+              include: {
+                safetyInformation: true,
+              },
+              orderBy: {
+                createdAt: "desc", // Order by createdAt in descending order
+              },
+            },
 
             candidateDocuments: {
               include: {
                 candidateDocumentType: true,
+              },
+              orderBy: {
+                createdAt: "desc", // Order by createdAt in descending order
               },
             },
             candidateAddress: {
@@ -1628,22 +1637,20 @@ include:{
         //
         //------------------Calculate Personal Information Completion calculation
 
+        // Sort the 'businessContactInfos' and 'personalContactInfos' arrays in JavaScript
+        user.businessContactInfos.sort((a, b) => {
+          if (a.isCurrent === b.isCurrent) {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          }
+          return b.isCurrent - a.isCurrent;
+        });
 
-          // Sort the 'businessContactInfos' and 'personalContactInfos' arrays in JavaScript
-  user.businessContactInfos.sort((a, b) => {
-    if (a.isCurrent === b.isCurrent) {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    }
-    return b.isCurrent - a.isCurrent;
-  });
-
-  user.personalContactInfos.sort((a, b) => {
-    if (a.isCurrent === b.isCurrent) {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    }
-    return b.isCurrent - a.isCurrent;
-  });
-
+        user.personalContactInfos.sort((a, b) => {
+          if (a.isCurrent === b.isCurrent) {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          }
+          return b.isCurrent - a.isCurrent;
+        });
 
         let filledFields = 0;
 
@@ -3674,25 +3681,24 @@ include:{
   },
 
   Mutation: {
-
     DeleteAdditionalInformation: async (_, __, context) => {
       try {
         // Validate user token and obtain userId
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the user
         let user = await context.prisma.user.findUnique({
           where: { id: userId },
         });
-    
+
         // Check if the user exists
         if (!user) {
           return {
             success: false,
-            message: 'User not found!',
+            message: "User not found!",
           };
         }
-    
+
         // Delete or set additional information to null
         user = await context.prisma.user.update({
           where: { id: userId },
@@ -3700,10 +3706,11 @@ include:{
             additionalInformation: null,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Additional information deleted or set to null successfully.',
+          message:
+            "Additional information deleted or set to null successfully.",
         };
       } catch (error) {
         return {
@@ -3712,27 +3719,30 @@ include:{
         };
       }
     },
-    
 
-    UpdateAdditionalInformation: async (_, { additionalInformation }, context) => {
+    UpdateAdditionalInformation: async (
+      _,
+      { additionalInformation },
+      context
+    ) => {
       try {
         // Validate user token and obtain userId
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the user
         let user = await context.prisma.user.findUnique({
           where: { id: userId },
         });
-    
+
         // Check if the user exists
         if (!user) {
           return {
             success: false,
-            message: 'User not found!',
+            message: "User not found!",
             raw: null,
           };
         }
-    
+
         // Update additional information
         user = await context.prisma.user.update({
           where: { id: userId },
@@ -3740,10 +3750,10 @@ include:{
             additionalInformation,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Additional information updated successfully.',
+          message: "Additional information updated successfully.",
           raw: user,
         };
       } catch (error) {
@@ -3754,34 +3764,35 @@ include:{
         };
       }
     },
-    
 
     DeleteCandidateSafetyInformation: async (_, { id }, context) => {
       try {
         // Validate user token and obtain userId
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the candidate safety information entry
-        const candidateSafetyInfo = await context.prisma.candidateSafetyInformation.findUnique({
-          where: { id },
-        });
-    
+        const candidateSafetyInfo =
+          await context.prisma.candidateSafetyInformation.findUnique({
+            where: { id },
+          });
+
         // Check if the entry exists and belongs to the authenticated user
         if (!candidateSafetyInfo || candidateSafetyInfo.userId !== userId) {
           return {
             success: false,
-            message: 'Candidate safety information not found or unauthorized to delete.',
+            message:
+              "Candidate safety information not found or unauthorized to delete.",
           };
         }
-    
+
         // Delete candidate safety information
         await context.prisma.candidateSafetyInformation.delete({
           where: { id },
         });
-    
+
         return {
           success: true,
-          message: 'Candidate safety information deleted successfully.',
+          message: "Candidate safety information deleted successfully.",
         };
       } catch (error) {
         return {
@@ -3790,51 +3801,56 @@ include:{
         };
       }
     },
-    
-   
-    AddCandidateSafetyInformation: async (_, { safetyInformationId }, context) => {
+
+    AddCandidateSafetyInformation: async (
+      _,
+      { safetyInformationId },
+      context
+    ) => {
       try {
         // Validate user token and obtain userId
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the user
         let user = await context.prisma.user.findUnique({
           where: { id: userId },
           include: { workExperiences: true },
         });
-    
+
         if (!user) {
           return {
             success: false,
-            message: 'User not found!',
+            message: "User not found!",
             candidateSafetyInformation: null,
           };
         }
-    
+
         // Check if the safety information exists
-        const safetyInfoExists = await context.prisma.safetyInformation.findUnique({
-          where: { id: safetyInformationId },
-        });
-    
+        const safetyInfoExists =
+          await context.prisma.safetyInformation.findUnique({
+            where: { id: safetyInformationId },
+          });
+
         if (!safetyInfoExists) {
           return {
             success: false,
-            message: 'Safety information not found.',
+            message: "Safety information not found.",
             raw: null,
           };
         }
-    
+
         // Add candidate safety information
-        const newCandidateSafetyInformation = await context.prisma.candidateSafetyInformation.create({
-          data: {
-            userId,
-            safetyInformationId,
-          },
-        });
-    
+        const newCandidateSafetyInformation =
+          await context.prisma.candidateSafetyInformation.create({
+            data: {
+              userId,
+              safetyInformationId,
+            },
+          });
+
         return {
           success: true,
-          message: 'Candidate safety information added successfully.',
+          message: "Candidate safety information added successfully.",
           raw: newCandidateSafetyInformation,
         };
       } catch (error) {
@@ -3845,13 +3861,6 @@ include:{
         };
       }
     },
-
-    
-    
-    
-    
-    
-    
 
     FileUpload: async (_, { file }, context) => {
       //--------------------------- File Uploading Start ----------------------
@@ -4137,56 +4146,46 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
-
-
-        let isEmailUnique =
-        await context.prisma.email.findMany({
+        let isEmailUnique = await context.prisma.email.findMany({
           where: {
             email: email,
           },
         });
 
-      if (isEmailUnique.length > 0) {
-        console.log("Email already exists! (Unique constraint failed)");
+        if (isEmailUnique.length > 0) {
+          console.log("Email already exists! (Unique constraint failed)");
 
-        return {
-          success: false,
-          raw: { message: "Email already exists! (Unique constraint failed)" },
-        };
-      } 
+          return {
+            success: false,
+            raw: {
+              message: "Email already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
+        let isPhoneUnique = await context.prisma.phone.findMany({
+          where: {
+            phone: phone,
+          },
+        });
 
+        if (isPhoneUnique.length > 0) {
+          console.log("Phone already exists! (Unique constraint failed)");
 
-
-
-
-
-      let isPhoneUnique =
-      await context.prisma.phone.findMany({
-        where: {
-          phone: phone,
-        },
-      });
-
-    if (isPhoneUnique.length > 0) {
-      console.log("Phone already exists! (Unique constraint failed)");
-
-      return {
-        success: false,
-        raw: { message: "Phone already exists! (Unique constraint failed)" },
-      };
-    } 
-
-
-
-
+          return {
+            success: false,
+            raw: {
+              message: "Phone already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
         let file_path_after_uploading = null;
         let filename_after_uploading = null;
@@ -4206,7 +4205,6 @@ include:{
           "webp",
           "bmp",
           "svg",
-
         ];
 
         let is_valid_extension;
@@ -4295,7 +4293,6 @@ include:{
             readableStream.push(null); // Signal the end of the stream
           });
 
-
           console.log("=============================");
 
           console.log(fileSizeInBytes);
@@ -4370,7 +4367,6 @@ include:{
                   console.log("file URL: ", file_path_after_uploading);
                   const fileName = filename_after_uploading; // Replace with your filename
 
-               
                   resolve({ success: true, raw: "" });
                   return { success: true, raw: "" };
 
@@ -4500,7 +4496,6 @@ include:{
             },
           });
         }
-
 
         let addressObj = {};
 
@@ -4700,56 +4695,46 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
-
-
-        let isEmailUnique =
-        await context.prisma.email.findMany({
+        let isEmailUnique = await context.prisma.email.findMany({
           where: {
             email: email,
           },
         });
 
-      if (isEmailUnique.length > 0) {
-        console.log("Email already exists! (Unique constraint failed)");
+        if (isEmailUnique.length > 0) {
+          console.log("Email already exists! (Unique constraint failed)");
 
-        return {
-          success: false,
-          raw: { message: "Email already exists! (Unique constraint failed)" },
-        };
-      } 
+          return {
+            success: false,
+            raw: {
+              message: "Email already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
+        let isPhoneUnique = await context.prisma.phone.findMany({
+          where: {
+            phone: phone,
+          },
+        });
 
+        if (isPhoneUnique.length > 0) {
+          console.log("Phone already exists! (Unique constraint failed)");
 
-
-
-
-
-      let isPhoneUnique =
-      await context.prisma.phone.findMany({
-        where: {
-          phone: phone,
-        },
-      });
-
-    if (isPhoneUnique.length > 0) {
-      console.log("Phone already exists! (Unique constraint failed)");
-
-      return {
-        success: false,
-        raw: { message: "Phone already exists! (Unique constraint failed)" },
-      };
-    } 
-
-
-
-
+          return {
+            success: false,
+            raw: {
+              message: "Phone already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
         let file_path_after_uploading = null;
         let filename_after_uploading = null;
@@ -4769,7 +4754,6 @@ include:{
           "webp",
           "bmp",
           "svg",
-
         ];
 
         let is_valid_extension;
@@ -4858,7 +4842,6 @@ include:{
             readableStream.push(null); // Signal the end of the stream
           });
 
-
           console.log("=============================");
 
           console.log(fileSizeInBytes);
@@ -4933,7 +4916,6 @@ include:{
                   console.log("file URL: ", file_path_after_uploading);
                   const fileName = filename_after_uploading; // Replace with your filename
 
-               
                   resolve({ success: true, raw: "" });
                   return { success: true, raw: "" };
 
@@ -4997,8 +4979,7 @@ include:{
           console.log("Company Logo and Company name not exists!");
         }
 
-
-        if(dateOfBirth){
+        if (dateOfBirth) {
           await context.prisma.user.update({
             where: {
               id: userId,
@@ -5007,7 +4988,7 @@ include:{
               dateOfBirth: dateOfBirth,
             },
           });
-        }else{
+        } else {
           console.log("Date of birth not exists!");
         }
 
@@ -5080,7 +5061,6 @@ include:{
             },
           });
         }
-
 
         let addressObj = {};
 
@@ -5280,83 +5260,72 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
+        let existingBusinessContactInfo =
+          await context.prisma.BusinessContactInfo.findUnique({
+            where: { id },
+          });
 
-
-        let existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findUnique({
-          where: { id },
-        });
-    
         if (!existingBusinessContactInfo) {
-          return { success: false, raw: { message: 'BusinessContactInfo not found!' } };
+          return {
+            success: false,
+            raw: { message: "BusinessContactInfo not found!" },
+          };
         }
 
-
-
-        if(existingBusinessContactInfo.emailId){
-           // Delete the record
-           await context.prisma.email.delete({
-            where: { id: existingBusinessContactInfo.emailId},
+        if (existingBusinessContactInfo.emailId) {
+          // Delete the record
+          await context.prisma.email.delete({
+            where: { id: existingBusinessContactInfo.emailId },
           });
         }
 
-    
-
-
-        let isEmailUnique =
-        await context.prisma.email.findMany({
+        let isEmailUnique = await context.prisma.email.findMany({
           where: {
             email: email,
           },
         });
 
-      if (isEmailUnique.length > 0) {
-        console.log("Email already exists! (Unique constraint failed)");
+        if (isEmailUnique.length > 0) {
+          console.log("Email already exists! (Unique constraint failed)");
 
-        return {
-          success: false,
-          raw: { message: "Email already exists! (Unique constraint failed)" },
-        };
-      } 
+          return {
+            success: false,
+            raw: {
+              message: "Email already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
+        if (existingBusinessContactInfo.phoneId) {
+          // Delete the record
+          await context.prisma.phone.delete({
+            where: { id: existingBusinessContactInfo.phoneId },
+          });
+        }
 
+        let isPhoneUnique = await context.prisma.phone.findMany({
+          where: {
+            phone: phone,
+          },
+        });
 
+        if (isPhoneUnique.length > 0) {
+          console.log("Phone already exists! (Unique constraint failed)");
 
-
-      if(existingBusinessContactInfo.phoneId){
-        // Delete the record
-        await context.prisma.phone.delete({
-         where: { id: existingBusinessContactInfo.phoneId},
-       });
-     }
-
-
-
-      let isPhoneUnique =
-      await context.prisma.phone.findMany({
-        where: {
-          phone: phone,
-        },
-      });
-
-    if (isPhoneUnique.length > 0) {
-      console.log("Phone already exists! (Unique constraint failed)");
-
-      return {
-        success: false,
-        raw: { message: "Phone already exists! (Unique constraint failed)" },
-      };
-    } 
-
-
-
-
+          return {
+            success: false,
+            raw: {
+              message: "Phone already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
         let file_path_after_uploading = null;
         let filename_after_uploading = null;
@@ -5376,7 +5345,6 @@ include:{
           "webp",
           "bmp",
           "svg",
-
         ];
 
         let is_valid_extension;
@@ -5465,7 +5433,6 @@ include:{
             readableStream.push(null); // Signal the end of the stream
           });
 
-
           console.log("=============================");
 
           console.log(fileSizeInBytes);
@@ -5540,7 +5507,6 @@ include:{
                   console.log("file URL: ", file_path_after_uploading);
                   const fileName = filename_after_uploading; // Replace with your filename
 
-               
                   resolve({ success: true, raw: "" });
                   return { success: true, raw: "" };
 
@@ -5671,18 +5637,12 @@ include:{
           });
         }
 
-
-
-
-        if(existingBusinessContactInfo.addressId){
+        if (existingBusinessContactInfo.addressId) {
           // Delete the record
           await context.prisma.address.delete({
-           where: { id: existingBusinessContactInfo.addressId},
-         });
-       }
-
-
-
+            where: { id: existingBusinessContactInfo.addressId },
+          });
+        }
 
         let addressObj = {};
 
@@ -5808,24 +5768,22 @@ include:{
             );
 
             businessContactInfoObj.isCurrent = true;
-            userBusinessContactInfo = await context.prisma.BusinessContactInfo.update({
-              where: { id: existingBusinessContactInfo.id },
-              data: businessContactInfoObj,
-            });
-
-
+            userBusinessContactInfo =
+              await context.prisma.BusinessContactInfo.update({
+                where: { id: existingBusinessContactInfo.id },
+                data: businessContactInfoObj,
+              });
 
             // existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findMany({
             //   where: { userId: userId },
             // });
 
-
-        
             if (!existingBusinessContactInfo) {
-              return { success: false, raw: { message: 'BusinessContactInfo not found!' } };
+              return {
+                success: false,
+                raw: { message: "BusinessContactInfo not found!" },
+              };
             }
-
-
           } else {
             console.log(
               "businessContactInfoObj already exists so this one is not primary!"
@@ -5836,7 +5794,8 @@ include:{
             //     data: businessContactInfoObj,
             //   });
 
-              userBusinessContactInfo = await context.prisma.BusinessContactInfo.update({
+            userBusinessContactInfo =
+              await context.prisma.BusinessContactInfo.update({
                 where: { id: existingBusinessContactInfo.id },
                 data: businessContactInfoObj,
               });
@@ -5853,7 +5812,6 @@ include:{
         return { success: false, raw: { message: error.message } };
       }
     },
-
 
     UpdatePersonalProfile: async (_, args, context) => {
       let {
@@ -5903,7 +5861,7 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
@@ -5912,74 +5870,65 @@ include:{
 
         // BusinessContactInfo
 
-        let existingBusinessContactInfo = await context.prisma.PersonalContactInfo.findUnique({
-          where: { id },
-        });
-    
+        let existingBusinessContactInfo =
+          await context.prisma.PersonalContactInfo.findUnique({
+            where: { id },
+          });
+
         if (!existingBusinessContactInfo) {
-          return { success: false, raw: { message: 'PersonalContactInfo not found!' } };
+          return {
+            success: false,
+            raw: { message: "PersonalContactInfo not found!" },
+          };
         }
 
-
-
-        if(existingBusinessContactInfo.emailId){
-           // Delete the record
-           await context.prisma.email.delete({
-            where: { id: existingBusinessContactInfo.emailId},
+        if (existingBusinessContactInfo.emailId) {
+          // Delete the record
+          await context.prisma.email.delete({
+            where: { id: existingBusinessContactInfo.emailId },
           });
         }
 
-    
-
-
-        let isEmailUnique =
-        await context.prisma.email.findMany({
+        let isEmailUnique = await context.prisma.email.findMany({
           where: {
             email: email,
           },
         });
 
-      if (isEmailUnique.length > 0) {
-        console.log("Email already exists! (Unique constraint failed)");
+        if (isEmailUnique.length > 0) {
+          console.log("Email already exists! (Unique constraint failed)");
 
-        return {
-          success: false,
-          raw: { message: "Email already exists! (Unique constraint failed)" },
-        };
-      } 
+          return {
+            success: false,
+            raw: {
+              message: "Email already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
+        if (existingBusinessContactInfo.phoneId) {
+          // Delete the record
+          await context.prisma.phone.delete({
+            where: { id: existingBusinessContactInfo.phoneId },
+          });
+        }
 
+        let isPhoneUnique = await context.prisma.phone.findMany({
+          where: {
+            phone: phone,
+          },
+        });
 
+        if (isPhoneUnique.length > 0) {
+          console.log("Phone already exists! (Unique constraint failed)");
 
-
-      if(existingBusinessContactInfo.phoneId){
-        // Delete the record
-        await context.prisma.phone.delete({
-         where: { id: existingBusinessContactInfo.phoneId},
-       });
-     }
-
-
-
-      let isPhoneUnique =
-      await context.prisma.phone.findMany({
-        where: {
-          phone: phone,
-        },
-      });
-
-    if (isPhoneUnique.length > 0) {
-      console.log("Phone already exists! (Unique constraint failed)");
-
-      return {
-        success: false,
-        raw: { message: "Phone already exists! (Unique constraint failed)" },
-      };
-    } 
-
-
-
-
+          return {
+            success: false,
+            raw: {
+              message: "Phone already exists! (Unique constraint failed)",
+            },
+          };
+        }
 
         let file_path_after_uploading = null;
         let filename_after_uploading = null;
@@ -5999,7 +5948,6 @@ include:{
           "webp",
           "bmp",
           "svg",
-
         ];
 
         let is_valid_extension;
@@ -6088,7 +6036,6 @@ include:{
             readableStream.push(null); // Signal the end of the stream
           });
 
-
           console.log("=============================");
 
           console.log(fileSizeInBytes);
@@ -6163,7 +6110,6 @@ include:{
                   console.log("file URL: ", file_path_after_uploading);
                   const fileName = filename_after_uploading; // Replace with your filename
 
-               
                   resolve({ success: true, raw: "" });
                   return { success: true, raw: "" };
 
@@ -6224,8 +6170,7 @@ include:{
           console.log("Company Logo and Company name not exists!");
         }
 
-
-        if(dateOfBirth){
+        if (dateOfBirth) {
           await context.prisma.user.update({
             where: {
               id: userId,
@@ -6234,10 +6179,9 @@ include:{
               dateOfBirth: dateOfBirth,
             },
           });
-        }else{
+        } else {
           console.log("Date of birth not exists!");
         }
-        
 
         let userEmail = null;
 
@@ -6309,18 +6253,12 @@ include:{
           });
         }
 
-
-
-
-        if(existingBusinessContactInfo.addressId){
+        if (existingBusinessContactInfo.addressId) {
           // Delete the record
           await context.prisma.address.delete({
-           where: { id: existingBusinessContactInfo.addressId},
-         });
-       }
-
-
-
+            where: { id: existingBusinessContactInfo.addressId },
+          });
+        }
 
         let addressObj = {};
 
@@ -6446,24 +6384,22 @@ include:{
             );
 
             businessContactInfoObj.isCurrent = true;
-            userBusinessContactInfo = await context.prisma.PersonalContactInfo.update({
-              where: { id: existingBusinessContactInfo.id },
-              data: businessContactInfoObj,
-            });
-
-
+            userBusinessContactInfo =
+              await context.prisma.PersonalContactInfo.update({
+                where: { id: existingBusinessContactInfo.id },
+                data: businessContactInfoObj,
+              });
 
             // existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findMany({
             //   where: { userId: userId },
             // });
 
-
-        
             if (!existingBusinessContactInfo) {
-              return { success: false, raw: { message: 'PersonalContactInfo not found!' } };
+              return {
+                success: false,
+                raw: { message: "PersonalContactInfo not found!" },
+              };
             }
-
-
           } else {
             console.log(
               "businessContactInfoObj already exists so this one is not primary!"
@@ -6474,7 +6410,8 @@ include:{
             //     data: businessContactInfoObj,
             //   });
 
-              userBusinessContactInfo = await context.prisma.PersonalContactInfo.update({
+            userBusinessContactInfo =
+              await context.prisma.PersonalContactInfo.update({
                 where: { id: existingBusinessContactInfo.id },
                 data: businessContactInfoObj,
               });
@@ -6492,11 +6429,8 @@ include:{
       }
     },
 
-
     DeleteBusinessProfile: async (_, args, context) => {
-      let {
-        id,
-      } = args;
+      let { id } = args;
 
       // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
@@ -6528,120 +6462,107 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
-
-
-
-
         // Check if the BusinessContactInfo record exists and belongs to the user
-    const existingBusinessContactInfo = await context.prisma.BusinessContactInfo.findUnique({
-      where: { id },
-      include: {
-        email: true,
-        phone: true,
-        address: true, // Include the associated Address record
-      },
-    });
+        const existingBusinessContactInfo =
+          await context.prisma.BusinessContactInfo.findUnique({
+            where: { id },
+            include: {
+              email: true,
+              phone: true,
+              address: true, // Include the associated Address record
+            },
+          });
 
-    if (!existingBusinessContactInfo) {
-      return { success: false, raw: { message: "BusinessContactInfo not found" } };
-    }
+        if (!existingBusinessContactInfo) {
+          return {
+            success: false,
+            raw: { message: "BusinessContactInfo not found" },
+          };
+        }
 
-    if (existingBusinessContactInfo.userId !== userId) {
-      return { success: false, raw: { message: "BusinessContactInfo does not belong to the user" } };
-    }
+        if (existingBusinessContactInfo.userId !== userId) {
+          return {
+            success: false,
+            raw: { message: "BusinessContactInfo does not belong to the user" },
+          };
+        }
 
+        // Delete associated Email record
+        if (existingBusinessContactInfo.email) {
+          await context.prisma.email.delete({
+            where: { id: existingBusinessContactInfo.email.id },
+          });
+        }
 
+        // Delete associated Phone record
+        if (existingBusinessContactInfo.phone) {
+          await context.prisma.phone.delete({
+            where: { id: existingBusinessContactInfo.phone.id },
+          });
+        }
 
+        // Delete associated Address record
+        if (existingBusinessContactInfo.address) {
+          await context.prisma.address.delete({
+            where: { id: existingBusinessContactInfo.address.id },
+          });
+        }
 
-  // Delete associated Email record
-  if (existingBusinessContactInfo.email) {
-    await context.prisma.email.delete({
-      where: { id: existingBusinessContactInfo.email.id },
-    });
-  }
-
-
-      // Delete associated Phone record
-      if (existingBusinessContactInfo.phone) {
-        await context.prisma.phone.delete({
-          where: { id: existingBusinessContactInfo.phone.id },
+        // Use Prisma to delete the BusinessContactInfo
+        await context.prisma.BusinessContactInfo.delete({
+          where: { id },
         });
-      }
-
-
-          // Delete associated Address record
-    if (existingBusinessContactInfo.address) {
-      await context.prisma.address.delete({
-        where: { id: existingBusinessContactInfo.address.id },
-      });
-    }
-
-
-    // Use Prisma to delete the BusinessContactInfo
-    await context.prisma.BusinessContactInfo.delete({
-      where: { id },
-    });
-
-
-
-
-
 
         // Check the remaining BusinessContactInfo records for the user
-        const remainingBusinessContactInfo = await context.prisma.BusinessContactInfo.findMany({
-          where: { userId: userId },
-        });
+        const remainingBusinessContactInfo =
+          await context.prisma.BusinessContactInfo.findMany({
+            where: { userId: userId },
+          });
 
+        if (remainingBusinessContactInfo.length === 1) {
+          // If only one record is left, set it as isCurrent: true
+          await context.prisma.BusinessContactInfo.update({
+            where: { id: remainingBusinessContactInfo[0].id },
+            data: { isCurrent: true },
+          });
+        } else if (remainingBusinessContactInfo.length > 1) {
+          // Sort the remaining records by createdAt in descending order
 
+          if (existingBusinessContactInfo.isCurrent === true) {
+            remainingBusinessContactInfo.sort(
+              (a, b) => b.createdAt - a.createdAt
+            );
 
-    if (remainingBusinessContactInfo.length === 1) {
-      // If only one record is left, set it as isCurrent: true
-      await context.prisma.BusinessContactInfo.update({
-        where: { id: remainingBusinessContactInfo[0].id },
-        data: { isCurrent: true },
-      });
-    } else if (remainingBusinessContactInfo.length > 1) {
-      // Sort the remaining records by createdAt in descending order
+            // Update the latest one as isCurrent: true
+            await context.prisma.BusinessContactInfo.update({
+              where: { id: remainingBusinessContactInfo[0].id },
+              data: { isCurrent: true },
+            });
+          }
+        }
 
-      if(existingBusinessContactInfo.isCurrent === true){
-
-        remainingBusinessContactInfo.sort((a, b) => b.createdAt - a.createdAt);
-
-        // Update the latest one as isCurrent: true
-        await context.prisma.BusinessContactInfo.update({
-          where: { id: remainingBusinessContactInfo[0].id },
-          data: { isCurrent: true },
-        });
-      }
-
-
-
-    }
-
-
-
-
-    return { success: true, raw: { message: "BusinessContactInfo and associated records deleted successfully" } };
-       
-
+        return {
+          success: true,
+          raw: {
+            message:
+              "BusinessContactInfo and associated records deleted successfully",
+          },
+        };
       } catch (error) {
         console.log(error);
         return { success: false, raw: { message: error.message } };
       }
     },
 
-
     DeletePersonalProfile: async (_, args, context) => {
-      let {
-        id,
-      } = args;
+      let { id } = args;
 
       // const userId = "d7bdcba2-aa31-4604-b7c6-594968475186";
 
@@ -6673,109 +6594,99 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
-
-
-
-
         // Check if the BusinessContactInfo record exists and belongs to the user
-    const existingBusinessContactInfo = await context.prisma.PersonalContactInfo.findUnique({
-      where: { id },
-      include: {
-        email: true,
-        phone: true,
-        address: true, // Include the associated Address record
-      },
-    });
+        const existingBusinessContactInfo =
+          await context.prisma.PersonalContactInfo.findUnique({
+            where: { id },
+            include: {
+              email: true,
+              phone: true,
+              address: true, // Include the associated Address record
+            },
+          });
 
-    if (!existingBusinessContactInfo) {
-      return { success: false, raw: { message: "PersonalContactInfo not found" } };
-    }
+        if (!existingBusinessContactInfo) {
+          return {
+            success: false,
+            raw: { message: "PersonalContactInfo not found" },
+          };
+        }
 
-    if (existingBusinessContactInfo.userId !== userId) {
-      return { success: false, raw: { message: "PersonalContactInfo does not belong to the user" } };
-    }
+        if (existingBusinessContactInfo.userId !== userId) {
+          return {
+            success: false,
+            raw: { message: "PersonalContactInfo does not belong to the user" },
+          };
+        }
 
+        // Delete associated Email record
+        if (existingBusinessContactInfo.email) {
+          await context.prisma.email.delete({
+            where: { id: existingBusinessContactInfo.email.id },
+          });
+        }
 
+        // Delete associated Phone record
+        if (existingBusinessContactInfo.phone) {
+          await context.prisma.phone.delete({
+            where: { id: existingBusinessContactInfo.phone.id },
+          });
+        }
 
+        // Delete associated Address record
+        if (existingBusinessContactInfo.address) {
+          await context.prisma.address.delete({
+            where: { id: existingBusinessContactInfo.address.id },
+          });
+        }
 
-  // Delete associated Email record
-  if (existingBusinessContactInfo.email) {
-    await context.prisma.email.delete({
-      where: { id: existingBusinessContactInfo.email.id },
-    });
-  }
-
-
-      // Delete associated Phone record
-      if (existingBusinessContactInfo.phone) {
-        await context.prisma.phone.delete({
-          where: { id: existingBusinessContactInfo.phone.id },
+        // Use Prisma to delete the BusinessContactInfo
+        await context.prisma.PersonalContactInfo.delete({
+          where: { id },
         });
-      }
-
-
-          // Delete associated Address record
-    if (existingBusinessContactInfo.address) {
-      await context.prisma.address.delete({
-        where: { id: existingBusinessContactInfo.address.id },
-      });
-    }
-
-
-    // Use Prisma to delete the BusinessContactInfo
-    await context.prisma.PersonalContactInfo.delete({
-      where: { id },
-    });
-
-
-
-
-
 
         // Check the remaining BusinessContactInfo records for the user
-        const remainingBusinessContactInfo = await context.prisma.PersonalContactInfo.findMany({
-          where: { userId: userId },
-        });
+        const remainingBusinessContactInfo =
+          await context.prisma.PersonalContactInfo.findMany({
+            where: { userId: userId },
+          });
 
+        if (remainingBusinessContactInfo.length === 1) {
+          // If only one record is left, set it as isCurrent: true
+          await context.prisma.PersonalContactInfo.update({
+            where: { id: remainingBusinessContactInfo[0].id },
+            data: { isCurrent: true },
+          });
+        } else if (remainingBusinessContactInfo.length > 1) {
+          // Sort the remaining records by createdAt in descending order
 
+          if (existingBusinessContactInfo.isCurrent === true) {
+            remainingBusinessContactInfo.sort(
+              (a, b) => b.createdAt - a.createdAt
+            );
 
-    if (remainingBusinessContactInfo.length === 1) {
-      // If only one record is left, set it as isCurrent: true
-      await context.prisma.PersonalContactInfo.update({
-        where: { id: remainingBusinessContactInfo[0].id },
-        data: { isCurrent: true },
-      });
-    } else if (remainingBusinessContactInfo.length > 1) {
-      // Sort the remaining records by createdAt in descending order
+            // Update the latest one as isCurrent: true
+            await context.prisma.PersonalContactInfo.update({
+              where: { id: remainingBusinessContactInfo[0].id },
+              data: { isCurrent: true },
+            });
+          }
+        }
 
-      if(existingBusinessContactInfo.isCurrent === true){
-
-        remainingBusinessContactInfo.sort((a, b) => b.createdAt - a.createdAt);
-
-        // Update the latest one as isCurrent: true
-        await context.prisma.PersonalContactInfo.update({
-          where: { id: remainingBusinessContactInfo[0].id },
-          data: { isCurrent: true },
-        });
-      }
-
-
-
-    }
-
-
-
-
-    return { success: true, raw: { message: "PersonalContactInfo and associated records deleted successfully" } };
-       
-
+        return {
+          success: true,
+          raw: {
+            message:
+              "PersonalContactInfo and associated records deleted successfully",
+          },
+        };
       } catch (error) {
         console.log(error);
         return { success: false, raw: { message: error.message } };
@@ -6783,7 +6694,6 @@ include:{
     },
 
     SetPrimaryBusinessProfile: async (_, args, context) => {
-
       let id = args.id;
       console.log("----------------------------------------------");
       let userId = null;
@@ -6813,55 +6723,54 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
+        const userBusinessContactInfos =
+          await context.prisma.BusinessContactInfo.findMany({
+            where: { userId: userId },
+          });
 
-
-        const userBusinessContactInfos = await context.prisma.BusinessContactInfo.findMany({
-          where: { userId: userId },
-        });
-        
-        const selectedBusinessContactInfo = userBusinessContactInfos.find(info => info.id === id);
-
-
+        const selectedBusinessContactInfo = userBusinessContactInfos.find(
+          (info) => info.id === id
+        );
 
         if (!selectedBusinessContactInfo) {
-          return { success: false, raw: { message: "BusinessContactInfo not found or does not belong to the user" } };
+          return {
+            success: false,
+            raw: {
+              message:
+                "BusinessContactInfo not found or does not belong to the user",
+            },
+          };
         }
 
+        // Set all BusinessContactInfo records of the user as isCurrent: false
+        await context.prisma.BusinessContactInfo.updateMany({
+          where: { userId: userId },
+          data: { isCurrent: false },
+        });
 
+        await context.prisma.BusinessContactInfo.update({
+          where: { id },
+          data: { isCurrent: true },
+        });
 
-
-
-            // Set all BusinessContactInfo records of the user as isCurrent: false
-    await context.prisma.BusinessContactInfo.updateMany({
-      where: { userId: userId },
-      data: { isCurrent: false },
-    });
-
-
-
-    await context.prisma.BusinessContactInfo.update({
-      where: { id },
-      data: { isCurrent: true },
-    });
-
-    return { success: true, raw: { message: "BusinessContactInfo updated successfully" }};
-
+        return {
+          success: true,
+          raw: { message: "BusinessContactInfo updated successfully" },
+        };
       } catch (error) {
         console.error(error);
         return { success: false, raw: { message: error.message } };
       }
-
     },
 
     SetPrimaryPersonalProfile: async (_, args, context) => {
-
       let id = args.id;
       console.log("----------------------------------------------");
       let userId = null;
@@ -6891,53 +6800,52 @@ include:{
 
         if (existingUser.roleId !== "de9cdff9-f803-4e69-903e-932d6ea130e9") {
           console.log("User is not a company user!", existingUser.roleId);
-          
+
           return {
             success: false,
             raw: { message: "User is not a company user!" },
           };
         }
 
+        const userBusinessContactInfos =
+          await context.prisma.PersonalContactInfo.findMany({
+            where: { userId: userId },
+          });
 
-
-        const userBusinessContactInfos = await context.prisma.PersonalContactInfo.findMany({
-          where: { userId: userId },
-        });
-        
-        const selectedBusinessContactInfo = userBusinessContactInfos.find(info => info.id === id);
-
-
+        const selectedBusinessContactInfo = userBusinessContactInfos.find(
+          (info) => info.id === id
+        );
 
         if (!selectedBusinessContactInfo) {
-          return { success: false, raw: { message: "PersonalContactInfo not found or does not belong to the user" } };
+          return {
+            success: false,
+            raw: {
+              message:
+                "PersonalContactInfo not found or does not belong to the user",
+            },
+          };
         }
 
+        // Set all BusinessContactInfo records of the user as isCurrent: false
+        await context.prisma.PersonalContactInfo.updateMany({
+          where: { userId: userId },
+          data: { isCurrent: false },
+        });
 
+        await context.prisma.PersonalContactInfo.update({
+          where: { id },
+          data: { isCurrent: true },
+        });
 
-
-
-            // Set all BusinessContactInfo records of the user as isCurrent: false
-    await context.prisma.PersonalContactInfo.updateMany({
-      where: { userId: userId },
-      data: { isCurrent: false },
-    });
-
-
-
-    await context.prisma.PersonalContactInfo.update({
-      where: { id },
-      data: { isCurrent: true },
-    });
-
-    return { success: true, raw: { message: "PersonalContactInfo updated successfully" }};
-
+        return {
+          success: true,
+          raw: { message: "PersonalContactInfo updated successfully" },
+        };
       } catch (error) {
         console.error(error);
         return { success: false, raw: { message: error.message } };
       }
-
     },
-    
 
     DeleteCandidateDocument: async (_, { id }, context) => {
       console.log("----------------------------------------------");
@@ -6966,21 +6874,19 @@ include:{
             },
           });
 
-
-          if(deletedCandidateDocument.count < 1){
-            return {
-              success: true,
-              message: "File not found!",
-              raw: deletedCandidateDocument,
-            };
-          }else{
-            return {
-              success: true,
-              message: "CandidateDocument deleted successfully",
-              raw: deletedCandidateDocument,
-            };
-          }
-       
+        if (deletedCandidateDocument.count < 1) {
+          return {
+            success: true,
+            message: "File not found!",
+            raw: deletedCandidateDocument,
+          };
+        } else {
+          return {
+            success: true,
+            message: "CandidateDocument deleted successfully",
+            raw: deletedCandidateDocument,
+          };
+        }
       } catch (error) {
         console.error("Error deleting CandidateDocument:", error);
         return {
@@ -7014,7 +6920,6 @@ include:{
       }
       console.log("----------------------------------------------");
 
-
       const documentTypesWithFile = [
         "690a2283-80c0-459c-9f61-1bd7af3283eb", // Resume
         "96f0bf7d-280d-49ac-bf33-a9eb82f8f9a4", // Other
@@ -7032,7 +6937,7 @@ include:{
           };
           // throw new Error("A file is required for this document type.");
         }
-      } else{
+      } else {
         console.log(
           "------------------------condition true 2--------------------------"
         );
@@ -7041,8 +6946,6 @@ include:{
           message: "An invalid document type.",
         };
       }
-
-
 
       // Check if candidateFileType is valid
       let validDocumentTypes =
@@ -7066,8 +6969,6 @@ include:{
         "a2b87362-0cb9-4373-9867-4632892d16f4", // Employee Privacy Policy
         "ea7ea9eb-5ab3-490e-b08a-0aaa7c464b36", // Employee Terms & Conditions
       ];
-
-
 
       // else if (documentTypesWithoutFile.includes(candidateFileType)) {
       //   console.log(
@@ -7916,36 +7817,43 @@ include:{
       }
     },
 
-     AddWorkExperience : async (_, args, context) => {
-      const { jobTitle, company, startDate, endDate, isCurrentPosition, description } = args;
-    
+    AddWorkExperience: async (_, args, context) => {
+      const {
+        jobTitle,
+        company,
+        startDate,
+        endDate,
+        isCurrentPosition,
+        description,
+      } = args;
+
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the user
         let user = await context.prisma.user.findUnique({
           where: { id: userId },
           include: { workExperiences: true },
         });
-    
+
         if (!user) {
           return {
             success: false,
-            message: 'User not found!',
+            message: "User not found!",
             raw: null,
           };
         }
-    
+
         // Ensure the user does not exceed the maximum allowed work experiences (30 in this case)
         if (user.workExperiences.length >= 30) {
           return {
             success: false,
-            message: 'Maximum limit of work experiences reached.',
+            message: "Maximum limit of work experiences reached.",
             raw: null,
           };
         }
-    
+
         // Add work experience
         const newWorkExperience = await context.prisma.workExperience.create({
           data: {
@@ -7958,10 +7866,10 @@ include:{
             userId,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Work experience added successfully.',
+          message: "Work experience added successfully.",
           raw: newWorkExperience,
         };
       } catch (error) {
@@ -7973,27 +7881,34 @@ include:{
       }
     },
 
+    UpdateWorkExperience: async (_, args, context) => {
+      const {
+        id,
+        jobTitle,
+        company,
+        startDate,
+        endDate,
+        isCurrentPosition,
+        description,
+      } = args;
 
-     UpdateWorkExperience : async (_, args, context) => {
-      const { id, jobTitle, company, startDate, endDate, isCurrentPosition, description } = args;
-    
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the work experience entry
         let workExperience = await context.prisma.workExperience.findUnique({
           where: { id: id },
         });
-    
+
         if (!workExperience || workExperience.userId !== userId) {
           return {
             success: false,
-            message: 'Work experience not found or unauthorized to update.',
+            message: "Work experience not found or unauthorized to update.",
             workExperience: null,
           };
         }
-    
+
         // Update work experience
         workExperience = await context.prisma.workExperience.update({
           where: { id: id },
@@ -8002,14 +7917,17 @@ include:{
             company: company || workExperience.company,
             startDate: startDate || workExperience.startDate,
             endDate: endDate || workExperience.endDate,
-            isCurrentPosition: isCurrentPosition !== undefined ? isCurrentPosition : workExperience.isCurrentPosition,
+            isCurrentPosition:
+              isCurrentPosition !== undefined
+                ? isCurrentPosition
+                : workExperience.isCurrentPosition,
             description: description || workExperience.description,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Work experience updated successfully.',
+          message: "Work experience updated successfully.",
           raw: workExperience,
         };
       } catch (error) {
@@ -8021,34 +7939,33 @@ include:{
       }
     },
 
-
-     DeleteWorkExperience : async (_, args, context) => {
+    DeleteWorkExperience: async (_, args, context) => {
       const { id } = args;
-    
+
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the work experience entry
         const workExperience = await context.prisma.workExperience.findUnique({
           where: { id: id },
         });
-    
+
         if (!workExperience || workExperience.userId !== userId) {
           return {
             success: false,
-            message: 'Work experience not found or unauthorized to delete.',
+            message: "Work experience not found or unauthorized to delete.",
           };
         }
-    
+
         // Delete work experience
         await context.prisma.workExperience.delete({
           where: { id: id },
         });
-    
+
         return {
           success: true,
-          message: 'Work experience deleted successfully.',
+          message: "Work experience deleted successfully.",
         };
       } catch (error) {
         return {
@@ -8058,15 +7975,20 @@ include:{
       }
     },
 
+    AddEducation: async (_, args, context) => {
+      const {
+        levelOfEducation,
+        institutionName,
+        fieldOfStudy,
+        startDate,
+        endDate,
+        isInProgress,
+      } = args;
 
-
-     AddEducation : async (_, args, context) => {
-      const { levelOfEducation, institutionName, fieldOfStudy, startDate, endDate, isInProgress } = args;
-    
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Add education
         const newEducation = await context.prisma.education.create({
           data: {
@@ -8079,10 +8001,10 @@ include:{
             userId,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Education added successfully.',
+          message: "Education added successfully.",
           raw: newEducation,
         };
       } catch (error) {
@@ -8094,28 +8016,34 @@ include:{
       }
     },
 
+    UpdateEducation: async (_, args, context) => {
+      const {
+        id,
+        levelOfEducation,
+        institutionName,
+        fieldOfStudy,
+        startDate,
+        endDate,
+        isInProgress,
+      } = args;
 
-
-     UpdateEducation : async (_, args, context) => {
-      const { id, levelOfEducation, institutionName, fieldOfStudy, startDate, endDate, isInProgress } = args;
-    
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the education entry
         let education = await context.prisma.education.findUnique({
           where: { id: id },
         });
-    
+
         if (!education || education.userId !== userId) {
           return {
             success: false,
-            message: 'Education not found or unauthorized to update.',
+            message: "Education not found or unauthorized to update.",
             education: null,
           };
         }
-    
+
         // Update education
         education = await context.prisma.education.update({
           where: { id: id },
@@ -8125,13 +8053,16 @@ include:{
             fieldOfStudy: fieldOfStudy || education.fieldOfStudy,
             startDate: startDate || education.startDate,
             endDate: endDate || education.endDate,
-            isInProgress: isInProgress !== undefined ? isInProgress : education.isInProgress,
+            isInProgress:
+              isInProgress !== undefined
+                ? isInProgress
+                : education.isInProgress,
           },
         });
-    
+
         return {
           success: true,
-          message: 'Education updated successfully.',
+          message: "Education updated successfully.",
           raw: education,
         };
       } catch (error) {
@@ -8143,36 +8074,33 @@ include:{
       }
     },
 
-
-
-
-     DeleteEducation : async (_, args, context) => {
+    DeleteEducation: async (_, args, context) => {
       const { id } = args;
-    
+
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
-    
+
         // Fetch the education entry
         const education = await context.prisma.education.findUnique({
           where: { id: id },
         });
-    
+
         if (!education || education.userId !== userId) {
           return {
             success: false,
-            message: 'Education not found or unauthorized to delete.',
+            message: "Education not found or unauthorized to delete.",
           };
         }
-    
+
         // Delete education
         await context.prisma.education.delete({
           where: { id: id },
         });
-    
+
         return {
           success: true,
-          message: 'Education deleted successfully.',
+          message: "Education deleted successfully.",
         };
       } catch (error) {
         return {
@@ -8181,7 +8109,6 @@ include:{
         };
       }
     },
-
 
     DeleteSearchHistory: async (_, { id }, context) => {
       try {
