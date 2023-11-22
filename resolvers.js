@@ -6970,6 +6970,52 @@ const resolvers = {
         "ea7ea9eb-5ab3-490e-b08a-0aaa7c464b36", // Employee Terms & Conditions
       ];
 
+
+
+
+
+
+
+      // Check if the user has reached the maximum limit for document uploads
+  const maxResumeUploads = 3;
+  const maxOtherDocumentUploads = 5;
+
+  if (candidateFileType === "690a2283-80c0-459c-9f61-1bd7af3283eb") {
+    // Resume document type
+    const userResumeUploads = await context.prisma.candidateDocument.count({
+      where: {
+        userId,
+        candidateDocumentTypeId: candidateFileType,
+      },
+    });
+
+    if (userResumeUploads >= maxResumeUploads) {
+      return {
+        success: false,
+        message: `You have reached the maximum limit of ${maxResumeUploads} resume uploads.`,
+      };
+    }
+  } else if (candidateFileType === "96f0bf7d-280d-49ac-bf33-a9eb82f8f9a4") {
+    // Other document type
+    const userOtherDocumentUploads = await context.prisma.candidateDocument.count({
+      where: {
+        userId,
+        candidateDocumentTypeId: candidateFileType,
+      },
+    });
+
+    if (userOtherDocumentUploads >= maxOtherDocumentUploads) {
+      return {
+        success: false,
+        message: `You have reached the maximum limit of ${maxOtherDocumentUploads} other document uploads.`,
+      };
+    }
+  }
+
+
+
+
+
       // else if (documentTypesWithoutFile.includes(candidateFileType)) {
       //   console.log(
       //     "------------------------condition true 2 --------------------------"
@@ -7988,6 +8034,29 @@ const resolvers = {
       try {
         // Validate user token
         const userId = await validateCognitoToken(context.token);
+
+        // Fetch the user
+        let user = await context.prisma.user.findUnique({
+          where: { id: userId },
+          include: { educations: true },
+        });
+
+        if (!user) {
+          return {
+            success: false,
+            message: "User not found!",
+            raw: null,
+          };
+        }
+
+        // Ensure the user does not exceed the maximum allowed education entries (30 in this case)
+        if (user.educations.length >= 10) {
+          return {
+            success: false,
+            message: "Maximum limit of education entries reached.",
+            raw: null,
+          };
+        }
 
         // Add education
         const newEducation = await context.prisma.education.create({
